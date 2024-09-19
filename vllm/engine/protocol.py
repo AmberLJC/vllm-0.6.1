@@ -1,4 +1,4 @@
-from typing import (AsyncGenerator, List, Mapping, Optional, Protocol,
+from typing import (AsyncGenerator, List, Mapping, Optional, Protocol, Dict, 
                     runtime_checkable)
 
 from vllm.config import DecodingConfig, ModelConfig
@@ -40,7 +40,8 @@ class AsyncEngineClient(Protocol):
         request_id: str,
         lora_request: Optional[LoRARequest] = None,
         trace_headers: Optional[Mapping[str, str]] = None,
-        prompt_adapter_request: Optional[PromptAdapterRequest] = None
+        prompt_adapter_request: Optional[PromptAdapterRequest] = None,
+        qoe_required: Optional[Dict[str, float]] = None,
     ) -> AsyncGenerator[RequestOutput, None]:
         """Generates outputs for a request"""
         ...
@@ -48,6 +49,7 @@ class AsyncEngineClient(Protocol):
     def encode(
         self,
         inputs: PromptInputs,
+
         pooling_params: PoolingParams,
         request_id: str,
         lora_request: Optional[LoRARequest] = None,

@@ -1,7 +1,7 @@
 import asyncio
 import pickle
 from contextlib import contextmanager, suppress
-from typing import Any, AsyncGenerator, Iterator, Mapping, Optional
+from typing import Any, AsyncGenerator, Iterator, Mapping, Optional, Dict
 from uuid import uuid4
 
 import cloudpickle
@@ -378,7 +378,8 @@ class AsyncEngineRPCClient:
         request_id: str,
         lora_request: Optional[LoRARequest] = None,
         trace_headers: Optional[Mapping[str, str]] = None,
-        prompt_adapter_request: Optional[PromptAdapterRequest] = None
+        prompt_adapter_request: Optional[PromptAdapterRequest] = None,
+        qoe_required: Optional[Dict[str, Any]] = None,
     ) -> AsyncGenerator[RequestOutput, None]:
         """Send an RPCGenerateRequest to the RPCServer and stream responses."""
 
@@ -393,7 +394,8 @@ class AsyncEngineRPCClient:
                         request_id=request_id,
                         lora_request=lora_request,
                         trace_headers=trace_headers,
-                        prompt_adapter_request=prompt_adapter_request)), ))
+                        prompt_adapter_request=prompt_adapter_request,
+                        qoe_required=qoe_required,)), ))
 
                 # Stream back the results from the RPC Server.
                 while not finished:

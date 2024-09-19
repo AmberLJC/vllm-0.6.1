@@ -128,6 +128,7 @@ class MultiStepOutputProcessor(SequenceGroupOutputProcessor):
                 seq, sampling_params)
 
         # TODO(sang): Support lora.
+        # READ: update seq.status 
         self.stop_checker.maybe_stop_sequence(
             seq,
             new_char_count=new_char_count,

@@ -182,6 +182,7 @@ class GPUExecutorAsync(GPUExecutor, ExecutorAsyncBase):
         self,
         execute_model_req: ExecuteModelRequest,
     ) -> List[Union[SamplerOutput, PoolerOutput]]:
+        # READ: wrapper to make sycn func to be async
         output = await make_async(self.driver_worker.execute_model
                                   )(execute_model_req=execute_model_req)
         return output

@@ -37,7 +37,19 @@ class StopChecker:
        new_char_count is the number of chars added to the
            sequence's output text for the newly generated token
         """
+        if seq.output_len > 0:
 
+            if seq.get_len() > self._max_model_len:
+                seq.status = SequenceStatus.FINISHED_LENGTH_CAPPED
+                return
+            # Check if the sequence has reached max_tokens.
+            if seq.get_output_len() == sampling_params.max_tokens:
+                seq.status = SequenceStatus.FINISHED_LENGTH_CAPPED
+                return
+            
+            if seq.get_output_len() == seq.output_len:
+                seq.status = SequenceStatus.FINISHED_STOPPED
+                return
         # Check if the minimum number of tokens has been generated yet;
         # skip the stop string/token checks if not
         if seq.get_output_len() < sampling_params.min_tokens:

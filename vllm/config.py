@@ -983,7 +983,8 @@ class SchedulerConfig:
                  is_multimodal_model: bool = False,
                  preemption_mode: Optional[str] = None,
                  num_scheduler_steps: int = 1,
-                 send_delta_data: bool = False) -> None:
+                 send_delta_data: bool = False,
+                 scheduling_strategy: str = "fcfs",) -> None:
         if max_num_batched_tokens is None:
             if enable_chunked_prefill:
                 # It is the values that have the best balance between ITL
@@ -1024,6 +1025,7 @@ class SchedulerConfig:
         self.preemption_mode = preemption_mode
         self.num_scheduler_steps = num_scheduler_steps
         self.send_delta_data = send_delta_data
+        self.scheduling_strategy = scheduling_strategy
         self._verify_args()
 
     def _verify_args(self) -> None:

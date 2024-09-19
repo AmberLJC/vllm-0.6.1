@@ -162,6 +162,9 @@ class EngineArgs:
     disable_async_output_proc: bool = False
     override_neuron_config: Optional[Dict[str, Any]] = None
 
+    # andes
+    scheduling_strategy: str = 'fcfs'
+
     def __post_init__(self):
         if self.tokenizer is None:
             self.tokenizer = self.model
@@ -408,6 +411,12 @@ class EngineArgs:
                             type=int,
                             default=EngineArgs.max_num_seqs,
                             help='Maximum number of sequences per iteration.')
+        parser.add_argument(
+            '--scheduling-strategy',
+            type=str,
+            default=EngineArgs.scheduling_strategy,
+            choices=['fcfs', 'qoe'],
+            help='The scheduling strategy to use for request scheduling.')
         parser.add_argument(
             '--max-logprobs',
             type=int,
@@ -976,6 +985,7 @@ class EngineArgs:
             num_scheduler_steps=self.num_scheduler_steps,
             send_delta_data=(envs.VLLM_USE_RAY_SPMD_WORKER
                              and parallel_config.use_ray),
+            scheduling_strategy = self.scheduling_strategy,
         )
         lora_config = LoRAConfig(
             max_lora_rank=self.max_lora_rank,

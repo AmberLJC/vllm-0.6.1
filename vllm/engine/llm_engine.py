@@ -7,6 +7,8 @@ from typing import (TYPE_CHECKING, Any, Callable, ClassVar, Deque, Dict,
                     Iterable, List, Mapping, NamedTuple, Optional)
 from typing import Sequence as GenericSequence
 from typing import Set, Type, Union
+import atexit
+import os
 
 import torch
 from typing_extensions import TypeVar
@@ -17,8 +19,9 @@ from vllm.config import (CacheConfig, DecodingConfig, DeviceConfig,
                          ObservabilityConfig, ParallelConfig,
                          PromptAdapterConfig, SchedulerConfig,
                          SpeculativeConfig)
-from vllm.core.scheduler import (ScheduledSequenceGroup, Scheduler,
+from vllm.core.scheduler import (ScheduledSequenceGroup, Scheduler, 
                                  SchedulerOutputs)
+from vllm.core.andes_scheduler import AndesScheduler
 from vllm.engine.arg_utils import EngineArgs
 from vllm.engine.metrics_types import StatLoggerBase, Stats
 from vllm.engine.output_processor.interfaces import (
@@ -55,7 +58,8 @@ from vllm.utils import Counter, Device
 from vllm.version import __version__ as VLLM_VERSION
 
 logger = init_logger(__name__)
-_LOCAL_LOGGING_INTERVAL_SEC = 5
+_LOCAL_LOGGING_INTERVAL_SEC = 3
+VLLM_SYSTEM_LOGGING_FILE = envs.VLLM_SYSTEM_LOGGING_FILE
 
 
 def _load_generation_config_dict(model_config: ModelConfig) -> Dict[str, Any]:
@@ -287,6 +291,23 @@ class LLMEngine:
         )
         self.log_stats = log_stats
 
+        self.stats = []
+        if envs.VLLM_SYSTEM_LOGGING_FILE is None:
+            VLLM_SYSTEM_LOGGING_FILE = '/vllm/examples/request_dispatcher/system_logs'
+        
+        if not os.path.exists(VLLM_SYSTEM_LOGGING_FILE):
+            raise RuntimeError(
+                "Could not find logging file. File does not exist: %s",
+                VLLM_SYSTEM_LOGGING_FILE)
+
+        def dump_stats() -> None:
+            # dump list to a file
+            with open(f'{VLLM_SYSTEM_LOGGING_FILE}/{time.time()}-sys-stats.txt', 'w') as f:
+                for stats in self.stats:
+                    f.write(f"{stats}\n")
+        
+        atexit.register(dump_stats)
+
         if not self.model_config.skip_tokenizer_init:
             self.tokenizer = self._init_tokenizer()
             self.detokenizer = Detokenizer(self.tokenizer)
@@ -395,8 +416,15 @@ class LLMEngine:
         # Create the scheduler.
         # NOTE: the cache_config here have been updated with the numbers of
         # GPU and CPU blocks, which are profiled in the distributed executor.
+        self.scheduling_strategy = self.scheduler_config.scheduling_strategy
+        scheduler_class = Optional[Type[Scheduler]]
+        if self.scheduling_strategy == "qoe":
+            scheduler_class = AndesScheduler
+        elif self.scheduling_strategy == "fcfs":
+            scheduler_class = Scheduler 
+        
         self.scheduler = [
-            Scheduler(
+            scheduler_class(
                 scheduler_config, cache_config, lora_config,
                 parallel_config.pipeline_parallel_size,
                 self.async_callbacks[v_id]
@@ -617,6 +645,7 @@ class LLMEngine:
         lora_request: Optional[LoRARequest],
         prompt_adapter_request: Optional[PromptAdapterRequest],
         trace_headers: Optional[Mapping[str, str]] = None,
+        qoe_required: Optional[dict] = None,
     ) -> None:
         self._validate_model_inputs(processed_inputs)
         # Create the sequences.
@@ -625,8 +654,11 @@ class LLMEngine:
         eos_token_id = self.input_preprocessor.get_eos_token_id(lora_request)
 
         seq = Sequence(seq_id, processed_inputs, block_size, eos_token_id,
-                       lora_request, prompt_adapter_request)
-
+                       lora_request, prompt_adapter_request,
+                       arrival_time=arrival_time,
+                       scheduling_strategy=self.scheduling_strategy, 
+                       qoe_required=qoe_required if qoe_required else None)
+        
         encoder_seq = None
         if 'encoder_prompt_token_ids' in processed_inputs:
             encoder_seq = Sequence(seq_id,
@@ -635,7 +667,10 @@ class LLMEngine:
                                    eos_token_id,
                                    lora_request,
                                    prompt_adapter_request,
-                                   from_decoder_prompt=False)
+                                   from_decoder_prompt=False,
+                                   arrival_time=arrival_time,
+                                   scheduling_strategy=self.scheduling_strategy,
+                                   qoe_required=qoe_required if qoe_required else None)
 
         # Create a SequenceGroup based on SamplingParams or PoolingParams
         if isinstance(params, SamplingParams):
@@ -681,6 +716,7 @@ class LLMEngine:
         lora_request: Optional[LoRARequest] = None,
         trace_headers: Optional[Mapping[str, str]] = None,
         prompt_adapter_request: Optional[PromptAdapterRequest] = None,
+        qoe_required: Optional[dict] = None,
     ) -> None:
         """Add a request to the engine's request pool.
 
@@ -728,7 +764,7 @@ class LLMEngine:
             raise ValueError(f"Got lora_request {lora_request} but LoRA is "
                              "not enabled!")
         if arrival_time is None:
-            arrival_time = time.time()
+            arrival_time = time.monotonic()
 
         preprocessed_inputs = self.input_preprocessor.preprocess(
             inputs,
@@ -746,6 +782,7 @@ class LLMEngine:
             lora_request=lora_request,
             prompt_adapter_request=prompt_adapter_request,
             trace_headers=trace_headers,
+            qoe_required=qoe_required,
         )
 
     def _create_sequence_group_with_sampling(
@@ -981,6 +1018,7 @@ class LLMEngine:
             else:
                 self.output_processor.process_prompt_logprob(seq_group, output)
                 if seq_group_meta.do_sample:
+                    # READ: process_outputs asynchronously
                     self.output_processor.process_outputs(
                         seq_group, output, is_async)
 
@@ -1055,13 +1093,13 @@ class LLMEngine:
         # For async case, we need to record the stats here.
         # For non-async case, the stats are done in the
         # LLMEngine/AsyncLLMEngine directly
-        if is_async:
-            # Log stats.
-            self.do_log_stats(scheduler_outputs, outputs, finished_before,
-                              skip)
-
-            # Tracing
-            self.do_tracing(scheduler_outputs)
+        # TODO: bug here
+        # if is_async:
+        #     # Log stats.
+        #     self.do_log_stats(scheduler_outputs, outputs, finished_before,
+        #                       skip)
+        #     # Tracing
+        #     self.do_tracing(scheduler_outputs)
 
         return None
 
@@ -1073,6 +1111,7 @@ class LLMEngine:
         sequences. This is normally done inside output processor, but it is
         required if the worker is to perform async forward pass to next step.
         """
+        now = time.monotonic()
         for seq_group_metadata, sequence_group_outputs, scheduled_seq_group in \
             zip(seq_group_metadata_list, output, scheduled_seq_groups):
             seq_group = scheduled_seq_group.seq_group
@@ -1092,7 +1131,7 @@ class LLMEngine:
 
                 assert len(seq_group.seqs) == 1
                 seq = seq_group.seqs[0]
-                seq.append_token_id(sample.output_token, sample.logprobs)
+                seq.append_token_id(sample.output_token, sample.logprobs, now)
 
     def step(self) -> List[Union[RequestOutput, EmbeddingRequestOutput]]:
         """Performs one decoding iteration and returns newly generated results.
@@ -1371,6 +1410,7 @@ class LLMEngine:
         if self.log_stats:
             stats = self._get_stats(scheduler_outputs, model_output,
                                     finished_before, skip)
+            self.stats.append(stats)
             for logger in self.stat_loggers.values():
                 logger.log(stats)
 
@@ -1471,6 +1511,7 @@ class LLMEngine:
 
                 group_was_prefill = idx < scheduler_outputs.num_prefill_groups
                 seq_group = scheduled_seq_group.seq_group
+                # group_was_prefill = seq_group.is_prefill()
 
                 # NOTE: a seq_group that completed all of its prefill tokens
                 # in the last iteration will have seq_group.is_prefill() = False
@@ -1536,7 +1577,7 @@ class LLMEngine:
             spec_decode_metrics = model_output[0].spec_decode_worker_metrics
         else:
             spec_decode_metrics = None
-
+        
         return Stats(
             now=now,
             # System stats

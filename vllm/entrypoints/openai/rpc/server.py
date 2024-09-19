@@ -110,8 +110,9 @@ class AsyncEngineRPCServer:
                 request_id=generate_request.request_id,
                 lora_request=generate_request.lora_request,
                 trace_headers=generate_request.trace_headers,
-                prompt_adapter_request=generate_request.prompt_adapter_request)
-
+                prompt_adapter_request=generate_request.prompt_adapter_request,
+                qoe_required=generate_request.qoe_required,)
+            
             async for request_output in results_generator:
                 await self.socket.send_multipart(
                     (identity, pickle.dumps(request_output)), copy=False)
@@ -229,7 +230,7 @@ async def run_server(server: AsyncEngineRPCServer):
     finally:
         # Clean up all resources.
         server.cleanup()
-
+        
 
 def run_rpc_server(async_engine_args: AsyncEngineArgs,
                    usage_context: UsageContext, rpc_path: str):

@@ -302,7 +302,7 @@ async def create_chat_completion(request: ChatCompletionRequest,
 @router.post("/v1/completions")
 async def create_completion(request: CompletionRequest, raw_request: Request):
     generator = await openai_serving_completion.create_completion(
-        request, raw_request)
+        request, raw_request) 
     if isinstance(generator, ErrorResponse):
         return JSONResponse(content=generator.model_dump(),
                             status_code=generator.code)
@@ -324,7 +324,7 @@ async def create_embedding(request: EmbeddingRequest, raw_request: Request):
 
     assert_never(generator)
 
-
+envs.VLLM_TORCH_PROFILER_DIR="/vllm/examples/request_dispatcher/profile_trace"
 if envs.VLLM_TORCH_PROFILER_DIR:
     logger.warning(
         "Torch Profiler is enabled in the API server. This should ONLY be "

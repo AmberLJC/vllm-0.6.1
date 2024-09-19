@@ -30,7 +30,7 @@ from vllm.worker.model_runner import GPUModelRunnerBase, ModelRunner
 from vllm.worker.worker_base import LocalOrDistributedWorkerBase, WorkerInput
 
 logger = init_logger(__name__)
-
+os.environ["VLLM_TORCH_PROFILER_DIR"] = "/vllm/examples/request_dispatcher/profile_trace"
 
 class Worker(LocalOrDistributedWorkerBase):
     """A worker class that executes (a partition of) the model on a GPU.
@@ -118,7 +118,7 @@ class Worker(LocalOrDistributedWorkerBase):
         self._seq_group_metadata_cache: Dict[str, SequenceGroupMetadata] = {}
 
         # Torch profiler. Enabled and configured through env vars:
-        # VLLM_TORCH_PROFILER_DIR=/path/to/save/trace
+        envs.VLLM_TORCH_PROFILER_DIR="/vllm/examples/request_dispatcher/profile_trace"
         if envs.VLLM_TORCH_PROFILER_DIR:
             torch_profiler_trace_dir = envs.VLLM_TORCH_PROFILER_DIR
             logger.info("Profiling enabled. Traces will be saved to: %s",

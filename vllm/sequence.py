@@ -1,6 +1,7 @@
 """Sequence and its related classes."""
 import copy
 import enum
+import time
 from abc import ABC, abstractmethod
 from array import array
 from collections import defaultdict
@@ -18,6 +19,7 @@ from vllm.pooling_params import PoolingParams
 from vllm.prompt_adapter.request import PromptAdapterRequest
 from vllm.sampling_params import SamplingParams
 from vllm.spec_decode.metrics import SpecDecodeWorkerMetrics
+from vllm.core.andes_utils.qoe_tracker import ServiceTracker, QoETracker
 
 if TYPE_CHECKING:
     from vllm.inputs import LLMInputs
@@ -362,6 +364,9 @@ class Sequence:
         lora_request: Optional[LoRARequest] = None,
         prompt_adapter_request: Optional[PromptAdapterRequest] = None,
         from_decoder_prompt: bool = True,
+        arrival_time: float = 0,
+        scheduling_strategy: str = 'fcfs',
+        qoe_required: Optional[Dict[str, float]] = None,
     ) -> None:
         self.seq_id = seq_id
         self.inputs = inputs
@@ -417,7 +422,18 @@ class Sequence:
         self.read_offset = 0
         # Input + output tokens
         self.tokens: Optional[List[str]] = None
+        self.qoe_required = {'ttft': 10, 'latency': 1} if not qoe_required else qoe_required
+        self.output_len = -1 if 'output_len' not in self.qoe_required else self.qoe_required['output_len']
 
+        self.qoe_required = {'ttft': 10, 'latency': 1} if not qoe_required else qoe_required
+        # TODO: add qoe_tracker, and set as optional
+        if scheduling_strategy == 'qoe':
+            self.request_tracker = QoETracker(self.qoe_required, self.get_prompt_len())
+        elif scheduling_strategy == 'fcfs':
+            self.request_tracker = ServiceTracker()
+        self.arrival_time = arrival_time 
+        self.preemption_times = 0
+    
     @property
     def n_blocks(self) -> int:
         return (self.get_len() + self.block_size - 1) // self.block_size
@@ -515,13 +531,19 @@ class Sequence:
     def reset_state_for_recompute(self):
         """Reset the sequence states for recomputation."""
         self.data.reset_state_for_recompute()
+        self.preemption_times += 1
+    
+    def reset_state_for_swap(self):
+        self.preemption_times += 1
 
-    def append_token_id(self, token_id: int, logprobs: Dict[int,
-                                                            Logprob]) -> None:
+    def append_token_id(self, token_id: int, 
+                        logprobs: Dict[int, Logprob], 
+                        now: float) -> None:
         assert token_id in logprobs
         self.output_logprobs.append(logprobs)
         self.data.append_token_id(token_id, logprobs[token_id].logprob)
-
+        self.request_tracker.add(now - self.arrival_time)
+ 
     def get_len(self) -> int:
         return self.data.get_len()
 
@@ -592,6 +614,10 @@ class Sequence:
                 f"status={self.status.name}, "
                 f"num_blocks={self.n_blocks}, ")
 
+    def get_value(self, now: float, token_latency: float, delta_t: float, running: bool = None) -> float:
+        # if self.preemption_times >= 2:
+        #     return 1
+        return self.request_tracker.get_value(now - self.arrival_time, token_latency, delta_t, running)
 
 class SequenceGroupState(msgspec.Struct,
                          omit_defaults=True):  # type: ignore[call-arg]
@@ -867,6 +893,15 @@ class SequenceGroup:
                 f"sampling_params={self.sampling_params}, "
                 f"num_seqs={len(self.seqs)})")
 
+    def get_len(self) -> int:
+        return sum([seq.get_len() for seq in self.get_seqs()])
+
+    def get_value(self, now: float, token_latency: float, delta_t: float, running: bool = None) -> float:
+        return max([seq.get_value(now, token_latency, delta_t, running) for seq in self.get_seqs()])
+    
+    @property
+    def get_preemption_times(self) -> int:
+        return sum([seq.preemption_times for seq in self.get_seqs()])
 
 class SequenceGroupMetadataDelta(
         msgspec.Struct,

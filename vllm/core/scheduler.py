@@ -617,6 +617,7 @@ class Scheduler:
                 scheduled_seq_group: ScheduledSequenceGroup = \
                     self._scheduled_seq_group_cache[self.cache_id].get_object()
                 scheduled_seq_group.seq_group = seq_group
+                # READ: why this seq can be prefill, for chuncked prefill?
                 if is_prefill:
                     scheduled_seq_group.token_chunk_size = num_running_tokens
                     prefill_seq_groups.append(scheduled_seq_group)
@@ -637,7 +638,7 @@ class Scheduler:
                     budget.add_num_seqs(seq_group.request_id, num_running_seqs)
                 if curr_loras is not None and seq_group.lora_int_id > 0:
                     curr_loras.add(seq_group.lora_int_id)
-
+        # set _index to 0
         self._scheduler_running_outputs_cache[self.next_cache_id].reset()
         self._scheduled_seq_group_cache[self.next_cache_id].reset()
 
@@ -1247,7 +1248,7 @@ class Scheduler:
                 else:
                     seq_group.metrics.scheduler_time = scheduler_time
 
-        # Move to next cache (if exists)
+        # Move to next cache (if exists), flip 0 <-> 1
         self.cache_id = self.next_cache_id
 
         # Return results
@@ -1385,8 +1386,8 @@ class Scheduler:
         for seq in seqs:
             seq.status = SequenceStatus.WAITING
             self.free_seq(seq)
-            seq.reset_state_for_recompute()
-
+            seq.reset_state_for_recompute() 
+        
     def _preempt_by_swap(
         self,
         seq_group: SequenceGroup,
@@ -1466,7 +1467,9 @@ class Scheduler:
         seqs = seq_group.get_seqs(status=status)
         for seq in seqs:
             num_new_tokens += seq.get_num_new_tokens()
-        assert num_new_tokens > 0
+        # assert num_new_tokens > 0
+        if num_new_tokens == 0: 
+            return 0
         # Chunk if a running request cannot fit in the given budget.
         # If number of seq > 1, it means it is doing beam search
         # in a decode phase. Do not chunk.

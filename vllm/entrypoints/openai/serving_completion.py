@@ -140,9 +140,10 @@ class OpenAIServingCompletion(OpenAIServing):
                     lora_request=lora_request,
                     prompt_adapter_request=prompt_adapter_request,
                     trace_headers=trace_headers,
+                    qoe_required=request.qoe_required,
                 )
-
                 generators.append(generator)
+        
         except ValueError as e:
             # TODO: Use a vllm-specific Validation Error
             return self.create_error_response(str(e))

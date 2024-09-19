@@ -162,6 +162,7 @@ class SamplingParams(
     # They are set in post_init.
     output_text_buffer_length: int = 0
     _all_stop_token_ids: Set[int] = msgspec.field(default_factory=set)
+    qoe: Optional[Dict[str, Any]] = {}
 
     @staticmethod
     def from_optional(
@@ -193,6 +194,7 @@ class SamplingParams(
         truncate_prompt_tokens: Optional[Annotated[int,
                                                    msgspec.Meta(ge=1)]] = None,
         output_kind: RequestOutputKind = RequestOutputKind.CUMULATIVE,
+        qoe: Optional[Dict[str, Any]] = None,
     ) -> "SamplingParams":
         return SamplingParams(
             n=1 if n is None else n,
@@ -225,6 +227,7 @@ class SamplingParams(
             logits_processors=logits_processors,
             truncate_prompt_tokens=truncate_prompt_tokens,
             output_kind=output_kind,
+            qoe=qoe,
         )
 
     def __post_init__(self) -> None:

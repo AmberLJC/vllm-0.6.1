@@ -49,11 +49,12 @@ async def generate(request: Request) -> Response:
     request_dict = await request.json()
     prompt = request_dict.pop("prompt")
     stream = request_dict.pop("stream", False)
+    qoe_required = request_dict.pop("qoe_required", {'ttft': 10, 'latency': 1, 'output_length': -1})
     sampling_params = SamplingParams(**request_dict)
     request_id = random_uuid()
 
     assert engine is not None
-    results_generator = engine.generate(prompt, sampling_params, request_id)
+    results_generator = engine.generate(prompt, sampling_params, request_id, qoe_required=qoe_required)
     results_generator = iterate_with_cancellation(
         results_generator, is_cancelled=request.is_disconnected)
 

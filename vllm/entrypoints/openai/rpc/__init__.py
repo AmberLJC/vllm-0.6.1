@@ -25,6 +25,7 @@ class RPCGenerateRequest:
     lora_request: Optional[LoRARequest] = None
     trace_headers: Optional[Mapping[str, str]] = None
     prompt_adapter_request: Optional[PromptAdapterRequest] = None
+    qoe_required: Optional[Mapping[str, int]] = None
 
 
 @dataclass

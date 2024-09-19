@@ -182,7 +182,9 @@ class RequestTracker:
                     request_id: str,
                     *,
                     verbose: bool = False,
-                    **engine_add_request_kwargs) -> AsyncStream:
+                    qoe_required: Dict[str, float],
+                    **engine_add_request_kwargs,
+                    ) -> AsyncStream:
         """Add a request to be sent to the engine on the next background
         loop iteration."""
         if request_id in self._request_streams:
@@ -192,7 +194,8 @@ class RequestTracker:
         stream = AsyncStream(request_id, abort_request)
         self._new_requests.put_nowait((stream, {
             "request_id": request_id,
-            **engine_add_request_kwargs
+            **engine_add_request_kwargs,
+            "qoe_required": qoe_required,
         }))
 
         self.new_requests_event.set()
@@ -272,7 +275,7 @@ class _AsyncLLMEngine(LLMEngine):
         # iteration
         cached_outputs = self.cached_scheduler_outputs[virtual_engine]
         seq_group_metadata_list = cached_outputs.seq_group_metadata_list
-        scheduler_outputs = cached_outputs.scheduler_outputs
+        scheduler_outputs = cached_outputs.scheduler_outputs # for multiple steps w/o scheduling
         allow_async_output_proc = cached_outputs.allow_async_output_proc
 
         ctx = self.scheduler_contexts[virtual_engine]
@@ -285,7 +288,8 @@ class _AsyncLLMEngine(LLMEngine):
         # batch has completed.
         if not self._has_remaining_steps(seq_group_metadata_list):
 
-            # Schedule iteration
+            # READ: Schedule iteration --> running, swap in/out, prefill/recompute...
+            # READ: allow_async_output_proc: if there are beam search in the batch
             (seq_group_metadata_list, scheduler_outputs,
              allow_async_output_proc
              ) = self.scheduler[virtual_engine].schedule()
@@ -337,6 +341,7 @@ class _AsyncLLMEngine(LLMEngine):
                     virtual_engine]
 
             # Execute the model.
+            # execute_model_async is asynchronized execute_model
             outputs = await self.model_executor.execute_model_async(
                 execute_model_req)
 
@@ -352,7 +357,7 @@ class _AsyncLLMEngine(LLMEngine):
         # Finish the current step for all the sequence groups.
         if self.scheduler_config.is_multi_step:
             for seq_group in seq_group_metadata_list:
-                seq_group.finish_step()
+                seq_group.finish_step() # increment steps
 
         if not self._has_remaining_steps(seq_group_metadata_list):
             # Clear the cache if we have finished all the steps
@@ -366,10 +371,13 @@ class _AsyncLLMEngine(LLMEngine):
                               is_async=allow_async_output_proc,
                               is_last_step=True)
 
+            # after finishing 1 step, we need to append the tokens to the seq
             if outputs and allow_async_output_proc:
                 assert len(
                     outputs
                 ) == 1, "Async postprocessor expects only a single output set"
+                # Q: does it mean not supporting multi-step?
+                # Append output to the sequence for async process, done outside output processor
                 self._advance_to_next_step(
                     outputs[0], seq_group_metadata_list,
                     scheduler_outputs.scheduled_seq_groups)
@@ -393,6 +401,7 @@ class _AsyncLLMEngine(LLMEngine):
                 self._process_model_outputs(ctx=ctx)
             assert len(ctx.output_queue) == 0
 
+        # READ: request_outputs should be handled asynchronously
         return ctx.request_outputs
 
     async def stop_remote_worker_execution_loop_async(self) -> None:
@@ -408,13 +417,14 @@ class _AsyncLLMEngine(LLMEngine):
         lora_request: Optional[LoRARequest] = None,
         trace_headers: Optional[Mapping[str, str]] = None,
         prompt_adapter_request: Optional[PromptAdapterRequest] = None,
+        qoe_required: Optional[Dict[str, float]] = None,
     ) -> None:
         """Async version of :meth:`add_request`."""
         if lora_request is not None and not self.lora_config:
             raise ValueError(f"Got lora_request {lora_request} but LoRA is "
                              "not enabled!")
         if arrival_time is None:
-            arrival_time = time.time()
+            arrival_time = time.monotonic()
 
         preprocessed_inputs = await self.input_preprocessor.preprocess_async(
             inputs,
@@ -432,6 +442,7 @@ class _AsyncLLMEngine(LLMEngine):
             lora_request=lora_request,
             prompt_adapter_request=prompt_adapter_request,
             trace_headers=trace_headers,
+            qoe_required=qoe_required,
         )
 
     async def check_health_async(self) -> None:
@@ -670,6 +681,7 @@ class AsyncLLMEngine:
         if aborted_requests:
             await self._engine_abort(aborted_requests)
 
+        # READ: the outputs should be all ready
         request_outputs = await self.engine.step_async(virtual_engine)
 
         # Put the outputs into the corresponding streams.
@@ -686,6 +698,7 @@ class AsyncLLMEngine:
         return not all_finished
 
     def process_request_outputs(self, request_outputs) -> bool:
+        # READ: input from ctx.request_outputs
         # Put the outputs into the corresponding streams.
         all_finished = True
         for request_output in request_outputs:
@@ -724,18 +737,21 @@ class AsyncLLMEngine:
             # (eg. NCCL timeouts).
             try:
                 async with asyncio_timeout(ENGINE_ITERATION_TIMEOUT_S):
+                    # finished tasks, remaining tasks
                     done, _ = await asyncio.wait(
                         requests_in_progress,
                         return_when=asyncio.FIRST_COMPLETED)
                     for _ in range(pipeline_parallel_size):
                         await asyncio.sleep(0)
                 for task in done:
+                    # True if there are in-progress requests
                     result = task.result()
                     virtual_engine = requests_in_progress.index(task)
                     has_unfinished_requests = (
                         self.engine.has_unfinished_requests_for_virtual_engine(
                             virtual_engine))
                     if result or has_unfinished_requests:
+                        # Why we need to create async task again?
                         requests_in_progress[virtual_engine] = (
                             asyncio.create_task(
                                 self.engine_step(virtual_engine)))
@@ -759,7 +775,8 @@ class AsyncLLMEngine:
         arrival_time: Optional[float] = None,
         lora_request: Optional[LoRARequest] = None,
         trace_headers: Optional[Mapping[str, str]] = None,
-        prompt_adapter_request: Optional[PromptAdapterRequest] = None
+        prompt_adapter_request: Optional[PromptAdapterRequest] = None,
+        qoe_required: Optional[Dict[str, float]] = None,
     ) -> AsyncGenerator[Union[RequestOutput, EmbeddingRequestOutput], None]:
         if not self.is_running:
             if self.start_engine_loop:
@@ -770,16 +787,17 @@ class AsyncLLMEngine:
                     "inspect the output to find the stacktrace of the "
                     "error that caused the background loop to stop "
                     "(AsyncEngineDeadError).")
-
+        # logger.info("Adding request qoe: %s.", qoe_required)
         stream = self._request_tracker.add_request(
             request_id,
             verbose=self.log_requests,
             inputs=inputs,
             params=params,
-            arrival_time=arrival_time or time.time(),
+            arrival_time=arrival_time or time.monotonic(),
             lora_request=lora_request,
             trace_headers=trace_headers,
-            prompt_adapter_request=prompt_adapter_request)
+            prompt_adapter_request=prompt_adapter_request,
+            qoe_required=qoe_required) 
 
         return stream.generator()
 
@@ -790,7 +808,8 @@ class AsyncLLMEngine:
         request_id: str,
         lora_request: Optional[LoRARequest] = None,
         trace_headers: Optional[Mapping[str, str]] = None,
-        prompt_adapter_request: Optional[PromptAdapterRequest] = None
+        prompt_adapter_request: Optional[PromptAdapterRequest] = None,
+        qoe_required: Optional[Dict[str, float]] = None,
     ) -> AsyncGenerator[RequestOutput, None]:
         """Generate outputs for a request.
 
@@ -863,6 +882,7 @@ class AsyncLLMEngine:
                 lora_request=lora_request,
                 trace_headers=trace_headers,
                 prompt_adapter_request=prompt_adapter_request,
+                qoe_required=qoe_required,
         ):
             yield LLMEngine.validate_output(output, RequestOutput)
 

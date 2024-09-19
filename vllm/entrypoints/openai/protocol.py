@@ -448,6 +448,7 @@ class CompletionRequest(OpenAIBaseModel):
     temperature: Optional[float] = 1.0
     top_p: Optional[float] = 1.0
     user: Optional[str] = None
+    qoe_required: Optional[Dict[str, Any]] = None
 
     # doc: begin-completion-sampling-params
     use_beam_search: bool = False
