@@ -72,6 +72,14 @@ def log_result(file_name: str,
         file.write('\n')
         print(f"{file_name}")
 
+def gamma_arrival_times(shape, scale, num_arrivals):
+    # Generate inter-arrival times from a Gamma distribution
+    inter_arrival_times = np.random.gamma(shape, scale, num_arrivals)
+    arrival_times = np.cumsum(inter_arrival_times)
+    
+    return np.diff(arrival_times) 
+
+
 def read_arrival_trace(args: argparse.Namespace
                        ) -> List[float]:
     arrival_trace = args.arrival_trace
@@ -101,11 +109,25 @@ def read_arrival_trace(args: argparse.Namespace
         elif time_range == 'hour':
             arrival_ts = hourly_arrival[the_hour_index]
         return np.diff(np.array(arrival_ts))
-
     elif arrival_trace == 'poisson':
         arrival_rate = args.arrival_rate 
         return np.random.exponential(scale=1/arrival_rate, size=args.num_requests)
-
+    elif arrival_trace == 'periodic_poisson':
+        arrival_rate = args.arrival_rate
+        interval_list = np.array([])
+        num_duty_cycles = 5
+        for i in range(num_duty_cycles):
+            inv = np.random.exponential(scale=1/arrival_rate, size=args.num_requests)
+            interval_list = np.concatenate((interval_list, inv))
+            if i < num_duty_cycles - 1:
+                interval_list = np.append(interval_list, args.num_requests / args.arrival_rate)
+        return interval_list
+    elif arrival_trace == 'gamma':
+        arrival_inv = 1 / args.arrival_rate
+        shape = 0.05   # burstness
+        scale = arrival_inv / shape  # avg arrival interval 
+        return gamma_arrival_times(shape, scale, args.num_requests )
+    
 def read_prompt_trace(args: argparse.Namespace):
     prompt_trace = args.prompt_trace
     if prompt_trace == 'sharegpt':
@@ -114,6 +136,8 @@ def read_prompt_trace(args: argparse.Namespace):
         prompt_trace_file = "prompt_trace/sharegpt_multi_qoe_trace.json"
     elif prompt_trace == 'arxiv':
         prompt_trace_file = "prompt_trace/arvix_qoe_trace.json"
+    elif prompt_trace == 'short-long':
+        prompt_trace_file = "prompt_trace/short_long_qoe_trace.json"
     
     with open(prompt_trace_file, 'r') as file:
         data = json.load(file)
@@ -125,7 +149,7 @@ async def main(args):
     date = datetime.datetime.fromtimestamp(time.time())
 
     formatted_date = date.strftime('%Y-%m-%d %H:%M')
-    result_file = f'{formatted_date}-{model_file}-{args.arrival_trace}*{args.num_requests}-{args.arrival_rate}-{args.time_range}-{args.time_index}.json'
+    result_file = f'{formatted_date}-{model_file}-{args.prompt_trace}-{args.arrival_trace}*{args.num_requests}-{args.arrival_rate}-{args.time_range}-{args.time_index}-{args.scheduling}.json'
     prompt_trace = read_prompt_trace(args)
     num_prompts = len(prompt_trace)
     print(f'>>>>>Start {result_file}<<<<<<')
@@ -139,6 +163,7 @@ async def main(args):
     with open(result_file, 'w') as file:
         # write arrival_intervals to file
         json.dump(arrival_intervals.tolist(), file)
+        file.write('\n')
     
     for i, arr_int in enumerate(arrival_intervals): 
         print(f"Progress: {i}/{len(arrival_intervals)} ")
@@ -148,8 +173,10 @@ async def main(args):
 
     # wait for all requests to finish
     await asyncio.gather(*tasks)
-    print(f"Total time taken: {time.time()-start_time}")
+    total_duration = f"Total time taken: {time.time()-start_time}. \n"
     analyze_one_trace(result_file)
+    with open('result.log', 'a') as file:
+        file.write(total_duration)
 
     
 if __name__ == "__main__":
@@ -157,11 +184,12 @@ if __name__ == "__main__":
     parser.add_argument("--url", type=str, default="http://localhost:8000/v1/completions") 
     parser.add_argument("--stream", action="store_true") 
     parser.add_argument("--prompt-trace", type=str, default='sharegpt') 
-    parser.add_argument("--arrival-trace", type=str, default='poisson', choices=['burstgpt', 'poisson']) 
+    parser.add_argument("--arrival-trace", type=str, default='poisson', choices=['burstgpt', 'poisson', 'periodic_poisson']) 
     parser.add_argument("--arrival-rate", type=float, default=1.0)
     parser.add_argument("--time-range", type=str, default='day', choices=['day', 'hour'])
     parser.add_argument("--time-index", type=int, default=-1)
     parser.add_argument("--model", type=str, default="facebook/opt-125m")
+    parser.add_argument("--scheduling", type=str, default="unknown")
     parser.add_argument("--num-requests", type=int, default=100)
     parser.add_argument("--max-tokens", type=int, default=1024)
     args = parser.parse_args()

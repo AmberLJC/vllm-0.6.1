@@ -1,0 +1,15 @@
+#  
+
+vllm serve meta-llama/Meta-Llama-3.1-70B --scheduling-strategy fcfs --load-format dummy  --tensor-parallel-size 8 
+
+sleep 90
+
+python request_dispatcher.py --model meta-llama/Meta-Llama-3.1-70B --num-requests 50 --arrival-rate 0.5 --max-tokens 128000 --arrival-trace periodic_poisson --scheduling fcfs --prompt-trace short-long
+
+python request_dispatcher.py --model meta-llama/Meta-Llama-3.1-70B --num-requests 100 --arrival-rate 1 --max-tokens 128000 --arrival-trace periodic_poisson  --scheduling fcfs --prompt-trace sharegpt-multi
+
+python request_dispatcher.py --model meta-llama/Meta-Llama-3.1-70B --num-requests 100 --arrival-rate 1 --max-tokens 128000 --arrival-trace periodic_poisson  --scheduling fcfs --prompt-trace arxiv
+
+python request_dispatcher.py --model meta-llama/Meta-Llama-3.1-70B --num-requests 100 --arrival-rate 1 --max-tokens 128000 --arrival-trace periodic_poisson  --scheduling fcfs --prompt-trace sharegpt
+
+

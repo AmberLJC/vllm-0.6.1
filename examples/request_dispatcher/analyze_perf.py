@@ -317,7 +317,6 @@ def plt_accumulate_token_over_time(log_data, file_name):
 				y = np.arange(1, len(time_list)+1)
 				plt.plot(group_time, y, linestyle='-', markersize=1) 
 
-	x = np.linspace(0, 200, 100)
 	avg_qoe = sum(qoe_list) / len(qoe_list)
 	error = np.std(qoe_list, ddof=1)  
 	qoe_25th = np.percentile(qoe_list, 25)
@@ -338,7 +337,7 @@ def plt_accumulate_token_over_time(log_data, file_name):
 		f.write(file_name + '\n')
 		f.write(short_results + '\n')
 
-	# xmin = log_data[1]['time_list'][0]
+	x = np.linspace(0, group_time[-1], 100)
 	xmin = 0
 	plt.plot(x + xmin, 5.1 * (x - 1), linestyle='--', markersize=2)
 	# plt.plot(x, 3.78 * (x - 1), linestyle='--', markersize=2)
@@ -438,7 +437,7 @@ def analyze_one_trace(file_name):
 if __name__ == "__main__":
 	dir = './'#  'past/'  #
 	file_list = [
-		'2024-09-20 03:33-facebook-opt-13b-burstgpt*100-1.0-hour.json'      
+	# '2024-09-20 17:57-facebook-opt-13b-burstgpt*100-1.0-hour-1363.json'
 			  		  ]
 	if not file_list:
 		file_list = read_all_files()
