@@ -43,8 +43,10 @@ class QoETracker(ServiceTracker):
     def get_value(self, cur_time: float, token_latency: float, delta_t: float, running: bool = True) -> float:
         # return 10 if self.preemption_times and running or len(self.token_timestamp) > 500 \
         #          else self.obj_func.get_value(self.token_timestamp, cur_time, token_latency, delta_t, running)
-        return 10 if len(self.token_timestamp) > 500 \
-                 else self.obj_func.get_value(self.token_timestamp, cur_time, token_latency, delta_t, running)
+        # return 10 if len(self.token_timestamp) > 500 \
+        #          else self.obj_func.get_value(self.token_timestamp, cur_time, token_latency, delta_t, running)
+
+        return self.obj_func.get_value(self.token_timestamp, cur_time, token_latency, delta_t, running)
 
     
     def get_QoE(self, token_timestamp: tuple = None, buffer_size_list: tuple = None, predict: bool = False) -> float:

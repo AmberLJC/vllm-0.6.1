@@ -124,7 +124,7 @@ def read_arrival_trace(args: argparse.Namespace
         return interval_list
     elif arrival_trace == 'gamma':
         arrival_inv = 1 / args.arrival_rate
-        shape = 0.05   # burstness
+        shape = 0.1   # burstness
         scale = arrival_inv / shape  # avg arrival interval 
         return gamma_arrival_times(shape, scale, args.num_requests )
     
@@ -149,11 +149,11 @@ async def main(args):
     date = datetime.datetime.fromtimestamp(time.time())
 
     formatted_date = date.strftime('%Y-%m-%d %H:%M')
-    result_file = f'{formatted_date}-{model_file}-{args.prompt_trace}-{args.arrival_trace}*{args.num_requests}-{args.arrival_rate}-{args.time_range}-{args.time_index}-{args.scheduling}.json'
     prompt_trace = read_prompt_trace(args)
     num_prompts = len(prompt_trace)
-    print(f'>>>>>Start {result_file}<<<<<<')
     arrival_intervals = read_arrival_trace(args)
+    result_file = f'{formatted_date}-{model_file}-{args.prompt_trace}-{args.arrival_trace}*{len(arrival_intervals)}-{args.arrival_rate}-{args.time_range}-{args.time_index}-{args.scheduling}.json'
+    print(f'>>>>>Start {result_file}<<<<<<')
     model_config = {
         "model": args.model,
         "max_tokens": args.max_tokens,
@@ -174,8 +174,9 @@ async def main(args):
     # wait for all requests to finish
     await asyncio.gather(*tasks)
     total_duration = f"Total time taken: {time.time()-start_time}. \n"
+    print(total_duration)
     analyze_one_trace(result_file)
-    with open('result.log', 'a') as file:
+    with open('results.log', 'a') as file:
         file.write(total_duration)
 
     
@@ -184,7 +185,7 @@ if __name__ == "__main__":
     parser.add_argument("--url", type=str, default="http://localhost:8000/v1/completions") 
     parser.add_argument("--stream", action="store_true") 
     parser.add_argument("--prompt-trace", type=str, default='sharegpt') 
-    parser.add_argument("--arrival-trace", type=str, default='poisson', choices=['burstgpt', 'poisson', 'periodic_poisson']) 
+    parser.add_argument("--arrival-trace", type=str, default='poisson', choices=['burstgpt', 'poisson', 'periodic_poisson', 'gamma']) 
     parser.add_argument("--arrival-rate", type=float, default=1.0)
     parser.add_argument("--time-range", type=str, default='day', choices=['day', 'hour'])
     parser.add_argument("--time-index", type=int, default=-1)

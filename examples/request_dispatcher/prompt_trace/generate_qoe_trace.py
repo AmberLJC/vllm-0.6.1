@@ -47,8 +47,7 @@ def generate_trace_file(file_path: str = '../dataset/sharegpt/ShareGPT_V3_filter
     for i in range(len(data)): 
         entry = {
             'ttft': 1, # TODO: add trace for TTFT
-            'latency': speed[i],
-            'ttlt': 1000,
+            'latency': speed[i], 
         }
         # data[i]['prompt'] = data[i]['prompt'][-max_prompt_len:]
         entry.update(data[i])
