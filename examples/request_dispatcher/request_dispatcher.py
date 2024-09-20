@@ -109,12 +109,12 @@ def read_arrival_trace(args: argparse.Namespace
 def read_prompt_trace(args: argparse.Namespace):
     prompt_trace = args.prompt_trace
     if prompt_trace == 'sharegpt':
-        prompt_trace_file = "prompt_trace/sharegpt_qoe_trace.json"
-        # with open(prompt_trace_file, 'r') as file:
-        #     data = json.load(file)
-        # return data
+        prompt_trace_file = "prompt_trace/sharegpt_qoe_trace.json" 
     elif prompt_trace == 'sharegpt-multi':
-        prompt_trace_file = "prompt_trace/haregpt_multi_qoe_trace.json"
+        prompt_trace_file = "prompt_trace/sharegpt_multi_qoe_trace.json"
+    elif prompt_trace == 'arxiv':
+        prompt_trace_file = "prompt_trace/arvix_qoe_trace.json"
+    
     with open(prompt_trace_file, 'r') as file:
         data = json.load(file)
     return data
