@@ -9,9 +9,7 @@ def read_arivx_data(file_path):
     with open(file_path, 'r') as file:
         for data in file:
             data = json.loads(data)
-            text = ''   
-            # print(data.keys()) 
-
+            text = ''    
             for k, v in data.items():
                 if k == 'sections' or k == 'abstract_text' or k == 'article_text':
                     for section in v:
