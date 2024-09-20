@@ -156,8 +156,8 @@ def process_results(log_data, alpha = 3):
 	metric_dict['avg_thpt'] = thpt_list
 	metric_dict['first_chunk_latency'] = first_chunk_latency_list
 	short_results = f'avg thpt: {np.mean(thpt_list) :2f}'
-	with open('thpt.log', 'a') as f: 
-		f.write(short_results + '\n')
+	# with open('thpt.log', 'a') as f: 
+	# 	f.write(short_results + '\n')
 
 	return metric_dict
  
@@ -335,6 +335,7 @@ def plt_accumulate_token_over_time(log_data, file_name):
 					
 	short_results = f'Avg Qoe: {avg_qoe:.2f}, Perfect Qoe: {perfect_qoe:.2f}. Throughput: {avg_thpt:.2f} req/s. TTFT {sum(ttft_list) / len(ttft_list) :.2f} s. Pause frequency: {total_pause/len(log_data) :.2f} .'
 	with open('results.log', 'a') as f: 
+		f.write(file_name + '\n')
 		f.write(short_results + '\n')
 
 	# xmin = log_data[1]['time_list'][0]
@@ -437,13 +438,7 @@ def analyze_one_trace(file_name):
 if __name__ == "__main__":
 	dir = './'#  'past/'  #
 	file_list = [
-		#   '2024-09-19 20:09-facebook-opt-13b-poisson*150-5.0-day.json'
-		#   '2024-09-19 20:13-facebook-opt-13b-poisson*150-5.0-day.json'
-		#   '2024-09-19 20:17-facebook-opt-13b-poisson*150-5.0-day.json'
-		#   '2024-09-19 20:21-facebook-opt-13b-poisson*150-5.0-day.json'
-		# '2024-09-19 20:31-facebook-opt-13b-poisson*150-5.0-day.json'
-		# '2024-09-19 20:39-facebook-opt-13b-poisson*150-5.0-day.json'
-		'2024-09-19 20:50-facebook-opt-13b-poisson*150-5.0-day.json'
+		'2024-09-20 03:33-facebook-opt-13b-burstgpt*100-1.0-hour.json'      
 			  		  ]
 	if not file_list:
 		file_list = read_all_files()

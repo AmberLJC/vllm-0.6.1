@@ -90,7 +90,12 @@ def read_arrival_trace(args: argparse.Namespace
             daily_arrival[t//86400].append(t)
         
         the_day_index = 9 # day 10
-        the_hour_index = 249 
+        if args.time_index != -1: 
+            the_hour_index = args.time_index
+            
+        else: 
+            # the_hour_index = 249 
+            the_hour_index = 400 # request rate > 1, up and down
         if time_range == 'day':
             arrival_ts = daily_arrival[the_day_index]
         elif time_range == 'hour':
@@ -105,9 +110,14 @@ def read_prompt_trace(args: argparse.Namespace):
     prompt_trace = args.prompt_trace
     if prompt_trace == 'sharegpt':
         prompt_trace_file = "prompt_trace/sharegpt_qoe_trace.json"
-        with open(prompt_trace_file, 'r') as file:
-            data = json.load(file)
-        return data
+        # with open(prompt_trace_file, 'r') as file:
+        #     data = json.load(file)
+        # return data
+    elif prompt_trace == 'sharegpt-multi':
+        prompt_trace_file = "prompt_trace/haregpt_multi_qoe_trace.json"
+    with open(prompt_trace_file, 'r') as file:
+        data = json.load(file)
+    return data
 
 async def main(args):
     start_time = time.time()
@@ -115,19 +125,21 @@ async def main(args):
     date = datetime.datetime.fromtimestamp(time.time())
 
     formatted_date = date.strftime('%Y-%m-%d %H:%M')
-    result_file = f'{formatted_date}-{model_file}-{args.arrival_trace}*{args.num_requests}-{args.arrival_rate}-{args.time_range}.json'
+    result_file = f'{formatted_date}-{model_file}-{args.arrival_trace}*{args.num_requests}-{args.arrival_rate}-{args.time_range}-{args.time_index}.json'
     prompt_trace = read_prompt_trace(args)
     num_prompts = len(prompt_trace)
+    print(f'>>>>>Start {result_file}<<<<<<')
     arrival_intervals = read_arrival_trace(args)
-    # print(f"arrival_intervals: {arrival_intervals[:5]}")
-    # print(f"prompt_trace: {prompt_trace[0]}")
     model_config = {
         "model": args.model,
         "max_tokens": args.max_tokens,
         "stream": "True",
     }
     tasks = []
-
+    with open(result_file, 'w') as file:
+        # write arrival_intervals to file
+        json.dump(arrival_intervals.tolist(), file)
+    
     for i, arr_int in enumerate(arrival_intervals): 
         print(f"Progress: {i}/{len(arrival_intervals)} ")
         task = asyncio.create_task(single_request(prompt_trace[i % num_prompts], model_config, args.url, result_file))
@@ -148,9 +160,10 @@ if __name__ == "__main__":
     parser.add_argument("--arrival-trace", type=str, default='poisson', choices=['burstgpt', 'poisson']) 
     parser.add_argument("--arrival-rate", type=float, default=1.0)
     parser.add_argument("--time-range", type=str, default='day', choices=['day', 'hour'])
+    parser.add_argument("--time-index", type=int, default=-1)
     parser.add_argument("--model", type=str, default="facebook/opt-125m")
     parser.add_argument("--num-requests", type=int, default=100)
-    parser.add_argument("--max_tokens", type=int, default=1024)
+    parser.add_argument("--max-tokens", type=int, default=1024)
     args = parser.parse_args()
 
     asyncio.run(main(args))

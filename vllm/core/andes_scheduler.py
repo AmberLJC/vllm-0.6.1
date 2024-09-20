@@ -71,8 +71,8 @@ class AndesScheduler(Scheduler):
                                                     self.swapped, 
                                                     utilization, 
                                                     latency_function)
-        logger.info("[Andes] Admitting %d, swapping in %d, evicting %d", 
-                    len(seq_to_admit), len(seq_to_swap_in), len(seq_to_evict))
+        # logger.info("[Andes] Admitting %d, swapping in %d, evicting %d", 
+        #             len(seq_to_admit), len(seq_to_swap_in), len(seq_to_evict))
 
         preempted = 0 
         
@@ -470,7 +470,7 @@ class AndesScheduler(Scheduler):
             seq_group = waiting_queue[0]
 
             waiting_seqs = seq_group.get_seqs(status=SequenceStatus.WAITING)
-            # logger.info(f"num of waiting seqs: {len(waiting_seqs)} - {seq_group.request_id})")
+
             # assert len(waiting_seqs) == 1, (
             #     "Waiting sequence group should have only one prompt "
             #     "sequence. ")
