@@ -166,7 +166,7 @@ async def main(args):
         file.write('\n')
     
     for i, arr_int in enumerate(arrival_intervals): 
-        print(f"Progress: {i}/{len(arrival_intervals)} ")
+        print(f"Progress: {i}/{len(arrival_intervals)} ") 
         task = asyncio.create_task(single_request(prompt_trace[i % num_prompts], model_config, args.url, result_file))
         tasks.append(task)  
         await asyncio.sleep(max(arr_int, 0.01))

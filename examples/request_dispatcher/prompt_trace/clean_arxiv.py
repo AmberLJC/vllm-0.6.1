@@ -12,8 +12,7 @@ def read_arivx_data(file_path):
             text = ''    
             for k, v in data.items():
                 if k == 'sections' or k == 'abstract_text' or k == 'article_text':
-                    for section in v:
-                        # print(section)
+                    for section in v: 
                         text += (str(section))
                         # break
                 elif k == 'article_id' or k == 'labels' or k == 'section_names':
@@ -21,14 +20,14 @@ def read_arivx_data(file_path):
                 else:
                     text += str(v)
             
-                yield text
+            yield text
                 
 
 def generate_qoe_arvix(output_path='arvix_qoe_trace.json'):
     entries = []
     speed = generate_tds_requirements([79.29, 7.03,6.92,3.58,3.17], [0.31, 0.15, 0.19, 0.15, 0.13, 0.16], 500)
     i = 0
-    random_output_len = np.random.normal(300, 25, 500) 
+    random_output_len = np.random.normal(1000, 200, 500) 
     for data in read_arivx_data(file_path):
 
         latency = speed[i%len(speed)] if  speed[i%len(speed)] < 1 else 0.2

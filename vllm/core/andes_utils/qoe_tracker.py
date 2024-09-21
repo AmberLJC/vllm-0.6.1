@@ -88,6 +88,7 @@ class QoETracker(ServiceTracker):
     def analyze_QoE(self, token_timestamp: list) -> float:
         # token_timestamp: start from TTFT
         # for post processing 
+        # TODO: not sensitive to long TTFT under 
         for t in token_timestamp:
             self.add(t)
         

@@ -422,6 +422,9 @@ class LLMEngine:
             scheduler_class = AndesScheduler
         elif self.scheduling_strategy == "fcfs":
             scheduler_class = Scheduler 
+        else:
+            raise ValueError(
+                f"Unsupported scheduling strategy: {self.scheduling_strategy}") 
         
         self.scheduler = [
             scheduler_class(

@@ -10,7 +10,7 @@ import numpy as np
 # tokenizer = LlamaTokenizer.from_pretrained('/data/Llama-2-70b-chat-hf')
 from transformers import GPT2Tokenizer
 tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-from vllm.core.andes_utils.qoe_tracker import ServiceTracker, QoETracker
+from vllm.core.andes_utils.qoe_tracker import QoETracker
 
 # Read the log file and extract the data
 
@@ -334,7 +334,7 @@ def plt_accumulate_token_over_time(log_data, file_name):
 					
 	short_results = f'Avg Qoe: {avg_qoe:.2f}, Perfect Qoe: {perfect_qoe:.2f}. Throughput: {avg_thpt:.2f} req/s. TTFT {sum(ttft_list) / len(ttft_list) :.2f} s. Pause frequency: {total_pause/len(log_data) :.2f} .'
 	with open('results.log', 'a') as f: 
-		f.write(file_name + '\n')
+		f.write(f' >>>>>>> {file_name} ({len(log_data)} requests) <<<<<<<<<\n')
 		f.write(short_results + '\n')
 
 	x = np.linspace(0, group_time[-1], 100)
@@ -437,7 +437,7 @@ def analyze_one_trace(file_name):
 if __name__ == "__main__":
 	dir = './'#  'past/'  #
 	file_list = [
-	# '2024-09-20 17:57-facebook-opt-13b-burstgpt*100-1.0-hour-1363.json'
+	'2024-09-20 20:22-meta-llama-Meta-Llama-3.1-70B-short-long-periodic_poisson*50-0.5-day--1-fcfs.json'
 			  		  ]
 	if not file_list:
 		file_list = read_all_files()
