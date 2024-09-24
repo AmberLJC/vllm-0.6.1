@@ -27,10 +27,10 @@ def generate_qoe_arvix(output_path='arvix_qoe_trace.json'):
     entries = []
     speed = generate_tds_requirements([79.29, 7.03,6.92,3.58,3.17], [0.31, 0.15, 0.19, 0.15, 0.13, 0.16], 500)
     i = 0
-    random_output_len = np.random.normal(1000, 200, 500) 
+    random_output_len = np.random.normal(600, 150, 500) 
     for data in read_arivx_data(file_path):
 
-        latency = speed[i%len(speed)] if  speed[i%len(speed)] < 1 else 0.2
+        latency = speed[i%len(speed)] if speed[i%len(speed)] < 1 else 0.2
         output_len = random_output_len[i%len(random_output_len)]
         entry = {
             'ttft': 1, # TODO: add trace for TTFT

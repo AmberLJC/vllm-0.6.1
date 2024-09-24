@@ -14,7 +14,8 @@ class KnapSack():
         self.delta_t = 30
         self.block_size = block_size
         self.total_available_blocks = total_available_blocks
-        self.preemption_threshold = 2
+        self.preemption_threshold = 3
+        self.token_latency = 0.05
     
     def pick_requests(self, running, waiting, swapped): 
         def get_context_block_list(requests):
@@ -25,8 +26,7 @@ class KnapSack():
         keep_context_block_size = sum(get_context_block_list(keep_running))
         available_blocks = self.total_available_blocks - keep_context_block_size
         # running = running when you have to kickout something
-        if len(keep_running) == len(running) and available_blocks <= 0:
-            print(f"-==============No available blocks: {self.total_available_blocks}-{keep_context_block_size}")
+        if len(keep_running) == len(running) or available_blocks <= 0:
             waiting = swapped = keep_running = []
             running = list(running)
         else:    
@@ -37,11 +37,11 @@ class KnapSack():
         # TODO: change max_batchsize to system defined
         max_batchsize = len(running) + len(waiting) + len(swapped)
         context_block_list = get_context_block_list(running + waiting + swapped)
-        value_list = [r.get_value(now, self.delta_t, self.delta_t, True) for r in running] 
-        value_list += [r.get_value(now, self.delta_t, self.delta_t, False) for r in waiting + swapped] 
+        value_list = [r.get_value(now, self.token_latency, self.delta_t, True) for r in running] 
+        value_list += [r.get_value(now, self.token_latency, self.delta_t, False) for r in waiting + swapped] 
         max_value, best_plan = self.knap_sack(available_blocks, max_batchsize, context_block_list, value_list )
-        if max_value <= 0:
-            return running + keep_running
+        # if max_value <= 0:
+        #     return running + keep_running
 
         return [(running + waiting + swapped)[i] for i in best_plan] + keep_running
 
@@ -88,7 +88,10 @@ class KnapSack():
                     current_value += value
                     picked_items.append(index)
                 else:
-                    break
+                    if current_weight / capacity < 0.9:
+                        continue
+                    else:
+                        break
 
             return current_value, picked_items
  

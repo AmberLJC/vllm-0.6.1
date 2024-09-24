@@ -40,7 +40,7 @@ class QoETracker(ServiceTracker):
     def preempt_signal(self):
         self.preemption_times += 1
  
-    def get_value(self, cur_time: float, token_latency: float, delta_t: float, running: bool = True) -> float:
+    def get_value(self, cur_time: float, token_latency: float, delta_t: float, running: bool = False) -> float:
         # return 10 if self.preemption_times and running or len(self.token_timestamp) > 500 \
         #          else self.obj_func.get_value(self.token_timestamp, cur_time, token_latency, delta_t, running)
         # return 10 if len(self.token_timestamp) > 500 \
@@ -68,23 +68,17 @@ class QoETracker(ServiceTracker):
             return 1
     
         token_timestamp = list(token_timestamp)
-        token_timestamp.insert(0, self.qoe_required['ttft'])
         s_actual = 0
- 
+        complete_time = token_timestamp[0]
+        token_timestamp.insert(0, self.qoe_required['ttft']) 
         for i in range(2, len(token_timestamp)):
             delta_t = self.qoe_required['latency'] if buffer_size_list[i] > 0  else token_timestamp[i] - token_timestamp[i-1]
-            s_actual += (2 * i -1) * delta_t / 2
+            s_actual += (2 * i - 1) * delta_t / 2
+            complete_time += delta_t
 
-        N = len(token_timestamp) - 1
-        if predict:
-            s_target = (token_timestamp[-1] - self.qoe_required['ttft']) ** 2 * self.display_rate / 2
-        elif token_timestamp[-1] < self.qoe_required['ttft'] + N / self.display_rate:
-            s_target = N * N * self.qoe_required['latency'] / 2 
-        else:
-            ttlt = token_timestamp[-1] + buffer_size_list[-1] * self.qoe_required['latency']
-            s_target = N * (2 * ttlt - 2 * self.qoe_required['ttft'] - N * self.qoe_required['latency']) / 2  
-        return min(1, s_actual / s_target) * self.ttft_penalty ** max(token_timestamp[1]-token_timestamp[0], 0) if s_target > 0 else 0
-
+        s_target = (2 * complete_time - len(token_timestamp) * self.qoe_required['latency']) * len(token_timestamp)  / 2
+        return min(1, s_actual / s_target)
+    
     def analyze_QoE(self, token_timestamp: list) -> float:
         # token_timestamp: start from TTFT
         # for post processing 
@@ -112,20 +106,22 @@ class QoEOptimizer():
 
  
 class AvgQoEOptimizer(QoEOptimizer):  
-    def get_value(self, token_timestamp, cur_time: float, token_latency: float, delta_t: float, running: bool = True) -> float:
-        expected_response_len =( cur_time + delta_t) * self.display_rate
+    def get_value(self, token_timestamp, cur_time: float, token_latency: float, delta_t: float, running: bool = False) -> float:
+        expected_response_len = (cur_time + delta_t) * self.display_rate
         length = len(token_timestamp) 
 
-        if length > 0 and token_timestamp[-1] < self.qoe_required['ttft'] + length * self.qoe_required['latency'] and \
-            token_latency <= self.qoe_required['latency']: 
+        if length > 0 and token_timestamp[-1] < self.qoe_required['ttft'] + length * self.qoe_required['latency']:
+        # and   token_latency <= self.qoe_required['latency']: 
             qoe_serve = 1
         else:
-            actual_response_len = length + delta_t / token_latency
-            qoe_serve = 1 - ((expected_response_len - actual_response_len) / expected_response_len) ** 2
+            actual_response_len = length + delta_t / max(self.qoe_required['latency'], token_latency)
+            qoe_serve = min(1, (actual_response_len / expected_response_len) ** 2)
 
         if length == 0:
-            qoe_preempt = cur_time + delta_t <= self.qoe_required['ttft']  
+            qoe_preempt = (cur_time + delta_t ) <= self.qoe_required['ttft']  
+        elif expected_response_len <= length:
+            qoe_preempt = 1
         else:
-            qoe_preempt =  1 - ((expected_response_len-length) / expected_response_len) ** 2
-        
-        return (qoe_serve - qoe_preempt) * (1 + 0.5 * running)
+            qoe_preempt =  1 - ((expected_response_len - length) / expected_response_len) ** 2
+        # print(f"qoe_serve: {qoe_serve}, qoe_preempt: {qoe_preempt}")
+        return (qoe_serve - qoe_preempt) # * (1 + 0.1 * running)

@@ -1,1 +1,6 @@
-https://github.com/armancohan/long-summarization?tab=readme-ov-file
+
+```
+https://github.com/armancohan/long-summarization
+https://github.com/hendrycks/apps
+
+```

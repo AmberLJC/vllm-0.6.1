@@ -5,11 +5,10 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 import numpy as np
 # Initialize empty lists to store timestamps and latency_per_total_token values
+ 
+from transformers import AutoTokenizer 
+tokenizer = AutoTokenizer.from_pretrained("01-ai/Yi-34B-200K")
 
-# from transformers import LlamaTokenizer
-# tokenizer = LlamaTokenizer.from_pretrained('/data/Llama-2-70b-chat-hf')
-from transformers import GPT2Tokenizer
-tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 from vllm.core.andes_utils.qoe_tracker import QoETracker
 
 # Read the log file and extract the data
@@ -87,10 +86,9 @@ def process_results(log_data, alpha = 3):
 	
 	error_rate = 0 
 
-	for entry in log_data:
-		
-		if "timstamp" in entry and entry["time_list"]:
-			timestamp_str = entry["timstamp"]
+	for entry in log_data: 
+		if "time_list" in entry: 
+			# timestamp_str = entry["timestamp"]
 			output_len = len(entry["time_list"])
 
 			if 'input_len' not in entry:
@@ -120,12 +118,7 @@ def process_results(log_data, alpha = 3):
 				thpt_list.append(total_latency / output_len)
 				
 			avg_token_latency, std_token_latency, pause_duration, pause_times = cal_avg_std(latency[1:], alpha)
-			avg_token_latency_list.append(avg_token_latency)
-			# if avg_token_latency == 0:
-			# 	cv_token_latency_list.append(0)
-			# else:
-			# 	cv_token_latency_list.append(std_token_latency / avg_token_latency)
-			
+			avg_token_latency_list.append(avg_token_latency) 
 			pause_times_list.append(pause_times)
 			
 			
@@ -149,7 +142,7 @@ def process_results(log_data, alpha = 3):
 	metric_dict['pause_duration'] = pause_duration_list
 	metric_dict['pause_times'] = pause_times_list
 	metric_dict['first_token_latency'] = first_token_latency_list
-	metric_dict['error_rate'] = error_rate / len(log_data)
+	# metric_dict['error_rate'] = error_rate / len(log_data)
 	metric_dict['input_len'] = input_len_list
 	metric_dict['output_len'] = output_len_list
 	metric_dict['total_latency'] = total_latency_list
@@ -197,17 +190,13 @@ def plot_cdf_per_request(metric_list, file_name, metric_name ):
 def plot_pdf_per_request(metric_list, file_name ):
 	plt.figure(figsize=(8, 4))
 	num_req = 0
-	for k in metric_list:
-		if 'len' not in k:
-			continue
-		data = metric_dict[k]
-		# hist, bins = np.histogram(data, bins=100, density=True)
-		# bin_centers = (bins[:-1] + bins[1:]) / 2
-		# plt.plot(bin_centers, hist, '-o', label=k)
-		plt.hist(data, bins=40, alpha=0.7, label=k) 
-		avg = round( sum(data) / len(data), 2)
-		plt.axvline(avg, color='red', linestyle='--', label=f'Avg: {avg:.5f}')
-		num_req = len(data)
+	for k in metric_list: 
+		if k == 'input_len' or k == 'output_len':
+			data = metric_list[k]
+			plt.hist(data, bins=40, alpha=0.7, label=k) 
+			avg = round( sum(data) / len(data), 2)
+			plt.axvline(avg, color='red', linestyle='--', label=f'{k} Avg: {avg:.5f}')
+			num_req = len(data)
 
 	plt.xlabel(f'Length - {num_req} request')
 	plt.ylabel('PDF ')
@@ -249,19 +238,7 @@ class ThptTracker:
 		x = (np.array(x) - x[0]) * self.granularity
 		y = np.array(list(self.time_token_thpt.values())) / self.granularity
 		saturate_thpt = find_saturate_thpt(y)
-		avg_thpt = sum(saturate_thpt) / max(1, len(saturate_thpt))
-		# plt.figure()
-		# plt.plot(x, y, marker='o', linestyle='-')
-		# plt.axhline(avg_thpt, color='red', linestyle='--', label=f'Avg: {avg_thpt:.2f}')
-
-		# plt.ylim(0,1000)
-		# plt.xlabel('Time (s)')
-		# plt.ylabel('Throughput (tokens/s)')
-		# plt.title(f'Throughput - {file_name}')
-		# plt.legend()
-		# plt.savefig(f'{FIG_DIR}/thpt-over-time-{file_name}.png')
-
-		# plt.close()
+		avg_thpt = sum(saturate_thpt) / max(1, len(saturate_thpt)) 
 
 		x = list(self.time_token_thpt.keys())
 		x = (np.array(x) - x[0]) * self.granularity
@@ -312,7 +289,7 @@ def plt_accumulate_token_over_time(log_data, file_name):
 			input_len = cal_input_len(entry['input'], tokenizer)
 			total_len_list.append( len(time_list) + input_len ) 
 
-			if  len(time_list) % 11 == 0:
+			if  len(time_list) % 1 == 0:
 				group_time = np.array(time_list) - time_list[0]
 				y = np.arange(1, len(time_list)+1)
 				plt.plot(group_time, y, linestyle='-', markersize=1) 
@@ -332,7 +309,7 @@ def plt_accumulate_token_over_time(log_data, file_name):
 					f'Avg Qoe: {avg_qoe:.2f}, Perfect Qoe: {perfect_qoe:.2f}. ' + \
 					f'Throughput: {avg_thpt:.2f} req/s. Avg TTFT: {sum(ttft_list) / len(ttft_list) :.2f}.  Pause frequency: {total_pause/len(log_data):.2f}. '
 					
-	short_results = f'Avg Qoe: {avg_qoe:.2f}, Perfect Qoe: {perfect_qoe:.2f}. Throughput: {avg_thpt:.2f} req/s. TTFT {sum(ttft_list) / len(ttft_list) :.2f} s. Pause frequency: {total_pause/len(log_data) :.2f} .'
+	short_results = f'Avg Qoe: {avg_qoe:.2f}, Perfect Qoe: {perfect_qoe:.2f}. Throughput: {avg_thpt:.2f} req/s. TTFT {sum(ttft_list) / len(ttft_list) :.2f} s. Pause frequency: {total_pause/len(log_data) :.2f}. Avg response {total_tokens/len(qoe_list):.2f}. '
 	with open('results.log', 'a') as f: 
 		f.write(f' >>>>>>> {file_name} ({len(log_data)} requests) <<<<<<<<<\n')
 		f.write(short_results + '\n')
@@ -437,8 +414,8 @@ def analyze_one_trace(file_name):
 if __name__ == "__main__":
 	dir = './'#  'past/'  #
 	file_list = [
-	'2024-09-20 20:22-meta-llama-Meta-Llama-3.1-70B-short-long-periodic_poisson*50-0.5-day--1-fcfs.json'
-			  		  ]
+'2024-09-24 02:26-microsoft-Phi-3-mini-128k-instruct-code-gamma*99-4.0(0.2)-day--1-fcfs.json'
+]
 	if not file_list:
 		file_list = read_all_files()
 
@@ -446,7 +423,7 @@ if __name__ == "__main__":
 	for file in file_list:
 		file = dir + file
 		metric_dict = analyze_one_trace(file)
-		log_dict[file] = metric_dict
+		log_dict[file] = metric_dict 
 
-	# plot_cdf_together(log_dict, ''.join(file_list[0].split('-')[:2]))#
+	plot_cdf_together(log_dict, ''.join(file_list[0].split('-')[3:9]))#
  

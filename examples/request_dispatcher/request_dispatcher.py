@@ -15,7 +15,7 @@ import aiohttp
 import datetime
 
 
-from analyze_perf import analyze_one_trace
+from analyze_perf import analyze_one_trace, plot_cdf_together
 # SYSTEM_PROMPT = "You are an artificial intelligence assistant that gives helpful answers to the user's questions or instructions."
 DEFAULT_TIMEOUT = aiohttp.ClientTimeout(total=3 * 3600)
 
@@ -124,9 +124,11 @@ def read_arrival_trace(args: argparse.Namespace
         return interval_list
     elif arrival_trace == 'gamma':
         arrival_inv = 1 / args.arrival_rate
-        shape = 0.1   # burstness
+        shape = args.burst   # burstness: smaller value means more bursty
         scale = arrival_inv / shape  # avg arrival interval 
         return gamma_arrival_times(shape, scale, args.num_requests )
+    else:
+        raise ValueError(f"Unknown arrival trace: {arrival_trace}")
     
 def read_prompt_trace(args: argparse.Namespace):
     prompt_trace = args.prompt_trace
@@ -138,6 +140,10 @@ def read_prompt_trace(args: argparse.Namespace):
         prompt_trace_file = "prompt_trace/arvix_qoe_trace.json"
     elif prompt_trace == 'short-long':
         prompt_trace_file = "prompt_trace/short_long_qoe_trace.json"
+    elif prompt_trace == 'code':
+        prompt_trace_file = "prompt_trace/code_qoe_trace.json"
+    else:
+        raise ValueError(f"Unknown prompt trace: {prompt_trace}")
     
     with open(prompt_trace_file, 'r') as file:
         data = json.load(file)
@@ -152,7 +158,7 @@ async def main(args):
     prompt_trace = read_prompt_trace(args)
     num_prompts = len(prompt_trace)
     arrival_intervals = read_arrival_trace(args)
-    result_file = f'{formatted_date}-{model_file}-{args.prompt_trace}-{args.arrival_trace}*{len(arrival_intervals)}-{args.arrival_rate}-{args.time_range}-{args.time_index}-{args.scheduling}.json'
+    result_file = f'{formatted_date}-{model_file}-{args.prompt_trace}-{args.arrival_trace}*{len(arrival_intervals)}-{args.arrival_rate}({args.burst})-{args.time_range}-{args.time_index}-{args.scheduling}.json'
     print(f'>>>>>Start {result_file}<<<<<<')
     model_config = {
         "model": args.model,
@@ -175,7 +181,8 @@ async def main(args):
     await asyncio.gather(*tasks)
     total_duration = f"Total time taken: {time.time()-start_time}. \n"
     print(total_duration)
-    analyze_one_trace(result_file)
+    metric_dict = analyze_one_trace(result_file)
+    # plot_cdf_together({result_file: metric_dict}, result_file)
     with open('results.log', 'a') as file:
         file.write(total_duration)
 
@@ -189,6 +196,7 @@ if __name__ == "__main__":
     parser.add_argument("--arrival-rate", type=float, default=1.0)
     parser.add_argument("--time-range", type=str, default='day', choices=['day', 'hour'])
     parser.add_argument("--time-index", type=int, default=-1)
+    parser.add_argument("--burst", type=float, default=0.2)
     parser.add_argument("--model", type=str, default="facebook/opt-125m")
     parser.add_argument("--scheduling", type=str, default="unknown")
     parser.add_argument("--num-requests", type=int, default=100)
