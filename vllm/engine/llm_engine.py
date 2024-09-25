@@ -1101,12 +1101,13 @@ class LLMEngine:
         # For non-async case, the stats are done in the
         # LLMEngine/AsyncLLMEngine directly
         # TODO: bug here
-        if is_async:
-            # Log stats.
-            # self.do_log_stats(scheduler_outputs, outputs, finished_before,
-            #                   skip)
-            # Tracing
-            self.do_tracing(scheduler_outputs)
+        if is_async:  
+            stats = self._get_short_stats(scheduler_outputs)
+            self.stats.append(stats)
+        #     # Log stats.
+        #     self.do_log_stats(scheduler_outputs, outputs, finished_before, skip)
+        #     # Tracing
+        #     self.do_tracing(scheduler_outputs)
 
         return None
 
@@ -1420,6 +1421,71 @@ class LLMEngine:
             self.stats.append(stats)
             for logger in self.stat_loggers.values():
                 logger.log(stats)
+
+    def _get_short_stats(self,
+                        scheduler_outputs: Optional[SchedulerOutputs]) -> Stats:
+        now = time.time()
+
+        num_running_sys = sum(
+            len(scheduler.running) for scheduler in self.scheduler)
+        num_swapped_sys = sum(
+            len(scheduler.swapped) for scheduler in self.scheduler)
+        num_waiting_sys = sum(
+            len(scheduler.waiting) for scheduler in self.scheduler)
+
+        num_total_gpu = self.cache_config.num_gpu_blocks
+        gpu_cache_usage_sys = 0.
+        if num_total_gpu is not None:
+            num_free_gpu = sum(
+                scheduler.block_manager.get_num_free_gpu_blocks()
+                for scheduler in self.scheduler)
+            gpu_cache_usage_sys = 1.0 - (num_free_gpu / num_total_gpu)
+
+        num_total_cpu = self.cache_config.num_cpu_blocks
+        cpu_cache_usage_sys = 0.
+        if num_total_cpu is not None and num_total_cpu > 0:
+            num_free_cpu = sum(
+                scheduler.block_manager.get_num_free_cpu_blocks()
+                for scheduler in self.scheduler)
+            cpu_cache_usage_sys = 1.0 - (num_free_cpu / num_total_cpu)
+
+        num_preemption_iter = (0 if scheduler_outputs is None else
+                               scheduler_outputs.preempted)
+
+
+      
+        return Stats(
+            now=now,
+            # System stats
+            #   Scheduler State
+            num_running_sys=num_running_sys,
+            num_swapped_sys=num_swapped_sys,
+            num_waiting_sys=num_waiting_sys,
+            #   KV Cache Usage in %
+            gpu_cache_usage_sys=gpu_cache_usage_sys,
+            cpu_cache_usage_sys=cpu_cache_usage_sys,
+            #   Prefix Cache Hit Rate
+            cpu_prefix_cache_hit_rate=0,
+            gpu_prefix_cache_hit_rate=0,
+
+            # Iteration stats
+            num_prompt_tokens_iter=0,
+            num_generation_tokens_iter=0,
+            time_to_first_tokens_iter=0,
+            time_per_output_tokens_iter=0,
+            spec_decode_metrics=0,
+            num_preemption_iter=num_preemption_iter,
+
+            # Request stats
+            #   Latency
+            time_e2e_requests=0,
+            #   Metadata
+            num_prompt_tokens_requests=0,
+            num_generation_tokens_requests=0,
+            best_of_requests=0,
+            n_requests=0,
+            finished_reason_requests=0,
+        )
 
     def _get_stats(self,
                    scheduler_outputs: Optional[SchedulerOutputs],

@@ -11,33 +11,17 @@ class KnapSack():
                  ) -> None:
         self.solver = solver 
         # TODO: move this to somewhere else
-        self.delta_t = 50
-        self.block_size = block_size
-        self.total_available_blocks = total_available_blocks
-        self.preemption_threshold = 3
-        self.token_latency = 0.05
-        # self.total_preemtpion = 0
-        # self.target_preemption_freq = self.preemption_threshold
+        self.delta_t = 50 
+        self.block_size = block_size 
+        self.total_available_blocks = total_available_blocks 
+        self.token_latency = 0.05 
     
     def pick_requests(self, running, waiting, swapped): 
         def get_context_block_list(requests):
             return [round((r.get_len()+1)/self.block_size + .5) for r in requests]
 
-        # if self.total_preemtpion /   > self.target_preemption_freq:
-        #     return running
-        # else:
-        keep_running = [r for r in running if r.get_preemption_times >= self.preemption_threshold]
-        keep_context_block_size = sum(get_context_block_list(keep_running))
-        available_blocks = self.total_available_blocks - keep_context_block_size
-        # running = running when you have to kickout something
-        if len(keep_running) == len(running) or available_blocks <= 0:
-            waiting = swapped = keep_running = []
-            running = list(running)
-        else:    
-            running = [r for r in running if r.get_preemption_times < self.preemption_threshold]
-            waiting = [r for r in waiting if r.get_preemption_times < self.preemption_threshold]
-            swapped = [r for r in swapped if r.get_preemption_times < self.preemption_threshold]
-            
+        available_blocks = self.total_available_blocks
+        running, waiting, swapped = list(running), list(waiting), list(swapped)
         now = time.monotonic()
 
         # TODO: change max_batchsize to system defined
@@ -46,9 +30,7 @@ class KnapSack():
         value_list = [r.get_value(now, self.token_latency, self.delta_t, True) for r in running] 
         value_list += [r.get_value(now, self.token_latency, self.delta_t, False) for r in waiting + swapped] 
         max_value, best_plan = self.knap_sack(available_blocks, max_batchsize, context_block_list, value_list )
-        # if max_value <= 0:
-        #     return running + keep_running
-        return [(running + waiting + swapped)[i] for i in best_plan] + keep_running
+        return [(running + waiting + swapped)[i] for i in best_plan] # + keep_running
 
     def schedule_requests(self, budget, running, waiting, swapped, utilization, latency_function):
         # TODO: consider budget
@@ -59,7 +41,6 @@ class KnapSack():
         seq_to_admit = [r for r in new_running if r in waiting]
         seq_to_swap_in = [r for r in new_running if r in swapped]
         seq_to_evict = [r for r in running if r not in new_running]
-        # self.total_preemtpion += len(seq_to_evict)
 
         return deque(seq_to_admit), deque(seq_to_swap_in), deque(seq_to_evict)
 

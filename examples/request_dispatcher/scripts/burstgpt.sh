@@ -8,7 +8,7 @@ run_model() {
     local model_name="microsoft/Phi-3-mini-128k-instruct"
     local arrival="burstgpt"
     local time_index=$2
-    echo "--------------- Start $SCHEDULE for $model_name ----------" >> results.log
+    echo "--------------- [BurstGPT] Start $SCHEDULE for $model_name ----------" >> results.log
 
     # Start serving the model with the input scheduling strategy
     vllm serve "$model_name" \
@@ -25,7 +25,7 @@ run_model() {
         --max-tokens 50000 \
         --arrival-trace "$arrival" \
         --time-range 'hour' \
-        --time-index '$time_index' \
+        --time-index "$time_index" \
         --scheduling "$SCHEDULE" \
         --prompt-trace sharegpt-multi
 
@@ -35,11 +35,9 @@ run_model() {
 } 
     # id: 385 - 943 requests 
     # id: 206 - 922 requests  
+    # id: 538 - 1075 requests
 
-run_model "fcfs" 964 
-run_model "qoe-avg" 964
-run_model "fcfs" 206 
-run_model "qoe-avg" 206
-
-run_model "fcfs" 355 
-run_model "qoe-avg" 355
+run_model "fcfs" 385 
+run_model "qoe-avg" 385
+run_model "fcfs" 538
+run_model "qoe-avg" 538 
