@@ -237,7 +237,6 @@ class AndesScheduler(Scheduler):
                     or not budget.can_schedule(num_new_tokens=num_new_tokens,
                                                num_new_seqs=num_new_seqs)):
                 # break
-                # logger.info(f"!!!!!!!!!!!!!!!!!!!this swapped request is finished!!!!!!!!!!!!!!!!!!!!")
                 for seq in seq_group.get_seqs():
                     seq.status = SequenceStatus.FINISHED_STOPPED
                 self.swapped.remove(seq_group)

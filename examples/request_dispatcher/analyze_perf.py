@@ -414,8 +414,8 @@ def analyze_one_trace(file_name):
 if __name__ == "__main__":
 	dir = './'#  'past/'  #
 	file_list = [
-'2024-09-24 02:26-microsoft-Phi-3-mini-128k-instruct-code-gamma*99-4.0(0.2)-day--1-fcfs.json'
-]
+		'2024-09-25 02:49-microsoft-Phi-3-mini-128k-instruct-code-burstgpt*2966-3.0(0.2)-hour-1424-fcfs.json'
+	]
 	if not file_list:
 		file_list = read_all_files()
 

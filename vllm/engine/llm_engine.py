@@ -9,6 +9,7 @@ from typing import Sequence as GenericSequence
 from typing import Set, Type, Union
 import atexit
 import os
+import datetime
 
 import torch
 from typing_extensions import TypeVar
@@ -302,7 +303,10 @@ class LLMEngine:
 
         def dump_stats() -> None:
             # dump list to a file
-            with open(f'{VLLM_SYSTEM_LOGGING_FILE}/{time.time()}-sys-stats.txt', 'w') as f:
+            date = datetime.datetime.fromtimestamp(time.time())
+            formatted_date = date.strftime('%Y-%m-%d %H:%M')
+            
+            with open(f'{VLLM_SYSTEM_LOGGING_FILE}/{formatted_date}-sys-stats.txt', 'w') as f:
                 for stats in self.stats:
                     f.write(f"{stats}\n")
         
@@ -418,7 +422,7 @@ class LLMEngine:
         # GPU and CPU blocks, which are profiled in the distributed executor.
         self.scheduling_strategy = self.scheduler_config.scheduling_strategy
         scheduler_class = Optional[Type[Scheduler]]
-        if self.scheduling_strategy == "qoe":
+        if self.scheduling_strategy == "qoe-avg" or self.scheduling_strategy == "qoe-min":
             scheduler_class = AndesScheduler
         elif self.scheduling_strategy == "fcfs":
             scheduler_class = Scheduler 
@@ -1097,12 +1101,12 @@ class LLMEngine:
         # For non-async case, the stats are done in the
         # LLMEngine/AsyncLLMEngine directly
         # TODO: bug here
-        # if is_async:
-        #     # Log stats.
-        #     self.do_log_stats(scheduler_outputs, outputs, finished_before,
-        #                       skip)
-        #     # Tracing
-        #     self.do_tracing(scheduler_outputs)
+        if is_async:
+            # Log stats.
+            # self.do_log_stats(scheduler_outputs, outputs, finished_before,
+            #                   skip)
+            # Tracing
+            self.do_tracing(scheduler_outputs)
 
         return None
 

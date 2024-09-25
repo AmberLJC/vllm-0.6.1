@@ -11,17 +11,21 @@ class KnapSack():
                  ) -> None:
         self.solver = solver 
         # TODO: move this to somewhere else
-        self.delta_t = 30
+        self.delta_t = 50
         self.block_size = block_size
         self.total_available_blocks = total_available_blocks
         self.preemption_threshold = 3
         self.token_latency = 0.05
+        # self.total_preemtpion = 0
+        # self.target_preemption_freq = self.preemption_threshold
     
     def pick_requests(self, running, waiting, swapped): 
         def get_context_block_list(requests):
             return [round((r.get_len()+1)/self.block_size + .5) for r in requests]
 
-        # TODO: pick certain running requests for knapsack to reduce the search space
+        # if self.total_preemtpion /   > self.target_preemption_freq:
+        #     return running
+        # else:
         keep_running = [r for r in running if r.get_preemption_times >= self.preemption_threshold]
         keep_context_block_size = sum(get_context_block_list(keep_running))
         available_blocks = self.total_available_blocks - keep_context_block_size
@@ -31,7 +35,9 @@ class KnapSack():
             running = list(running)
         else:    
             running = [r for r in running if r.get_preemption_times < self.preemption_threshold]
-            waiting, swapped = list(waiting), list(swapped)
+            waiting = [r for r in waiting if r.get_preemption_times < self.preemption_threshold]
+            swapped = [r for r in swapped if r.get_preemption_times < self.preemption_threshold]
+            
         now = time.monotonic()
 
         # TODO: change max_batchsize to system defined
@@ -42,7 +48,6 @@ class KnapSack():
         max_value, best_plan = self.knap_sack(available_blocks, max_batchsize, context_block_list, value_list )
         # if max_value <= 0:
         #     return running + keep_running
-
         return [(running + waiting + swapped)[i] for i in best_plan] + keep_running
 
     def schedule_requests(self, budget, running, waiting, swapped, utilization, latency_function):
@@ -54,7 +59,8 @@ class KnapSack():
         seq_to_admit = [r for r in new_running if r in waiting]
         seq_to_swap_in = [r for r in new_running if r in swapped]
         seq_to_evict = [r for r in running if r not in new_running]
- 
+        # self.total_preemtpion += len(seq_to_evict)
+
         return deque(seq_to_admit), deque(seq_to_swap_in), deque(seq_to_evict)
 
     def knap_sack(self, W: int, item_cap:int, wt: list, val: list ) -> int: 

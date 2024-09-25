@@ -21,7 +21,7 @@ class ServiceTracker():
         pass
 
 class QoETracker(ServiceTracker):
-    def __init__(self, qoe_required: dict,  prompt_len: int = 0):
+    def __init__(self, qoe_required: dict,  prompt_len: int = 0, obj_func: str = 'avg'):
         self.buffer_size = 0
         self.qoe_required = qoe_required
         self.prompt_len = prompt_len
@@ -31,7 +31,12 @@ class QoETracker(ServiceTracker):
         self.token_timestamp = [] # offset to 0  
         self.ttft_penalty = 1
         self.value = None
-        self.obj_func = AvgQoEOptimizer(qoe_required)
+        if obj_func == 'avg':
+            self.obj_func = AvgQoEOptimizer(qoe_required)
+        elif obj_func == 'min':
+            self.obj_func = MinQoEOptimizer(qoe_required)
+        else:
+            raise ValueError(f"Unsupported objective function: {obj_func}")
         self.preemption_times = 0
             
     def add(self, time_stamp):   
@@ -92,7 +97,7 @@ class QoEOptimizer():
     def __init__(self, qoe_required) -> None:
         self.qoe_required = qoe_required 
         self.display_rate = 1 / self.qoe_required['latency']
-        self.record = -1
+        self.recorded_value = 1
     
     def cal_qoe_serve(self, token_timestamp, cur_time: float, token_latency: float, delta_t: float) -> float:
         pass
@@ -111,7 +116,6 @@ class AvgQoEOptimizer(QoEOptimizer):
         length = len(token_timestamp) 
 
         if length > 0 and token_timestamp[-1] < self.qoe_required['ttft'] + length * self.qoe_required['latency']:
-        # and   token_latency <= self.qoe_required['latency']: 
             qoe_serve = 1
         else:
             actual_response_len = length + delta_t / max(self.qoe_required['latency'], token_latency)
@@ -123,5 +127,32 @@ class AvgQoEOptimizer(QoEOptimizer):
             qoe_preempt = 1
         else:
             qoe_preempt =  1 - ((expected_response_len - length) / expected_response_len) ** 2
-        # print(f"qoe_serve: {qoe_serve}, qoe_preempt: {qoe_preempt}")
-        return (qoe_serve - qoe_preempt) # * (1 + 0.1 * running)
+        # print(f'qoe_serve: {qoe_serve}, qoe_preempt: {qoe_preempt}')
+        return (qoe_serve - qoe_preempt) * (1 + 0.1 * running)
+
+ 
+class MinQoEOptimizer(QoEOptimizer):  
+    def get_value(self, token_timestamp, cur_time: float, token_latency: float, delta_t: float, running: bool = False) -> float:
+        if self.recorded_value == 0:
+            return 0
+
+        length = len(token_timestamp) 
+        # check if there is hope
+        if length == 0 and cur_time > self.qoe_required['ttft']:
+            self.recorded_value = 0
+            return 0
+        elif length > 0 and token_timestamp[-1] > self.qoe_required['ttft'] + length * self.qoe_required['latency']:
+            self.recorded_value = 0
+            return 0
+
+        expected_response_len = (cur_time + delta_t) * self.display_rate
+        # still have hope
+        if length == 0:
+            qoe_preempt = (cur_time + delta_t ) <= self.qoe_required['ttft']  
+        elif expected_response_len <= length:
+            qoe_preempt = 1
+        else:
+            qoe_preempt =  1 - ((expected_response_len - length) / expected_response_len) ** 2
+
+        return 1 - qoe_preempt
+        

@@ -415,7 +415,7 @@ class EngineArgs:
             '--scheduling-strategy',
             type=str,
             default=EngineArgs.scheduling_strategy,
-            choices=['fcfs', 'qoe'],
+            choices=['fcfs', 'qoe-avg', 'qoe-min'],
             help='The scheduling strategy to use for request scheduling.')
         parser.add_argument(
             '--max-logprobs',

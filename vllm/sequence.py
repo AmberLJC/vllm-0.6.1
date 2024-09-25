@@ -425,12 +425,15 @@ class Sequence:
         self.qoe_required = {'ttft': 10, 'latency': 1} if not qoe_required else qoe_required
         self.output_len = -1 if 'output_len' not in self.qoe_required else self.qoe_required['output_len']
 
-        self.qoe_required = {'ttft': 10, 'latency': 1} if not qoe_required else qoe_required
         # TODO: add qoe_tracker, and set as optional
-        if scheduling_strategy == 'qoe':
-            self.request_tracker = QoETracker(self.qoe_required, self.get_prompt_len())
+        if scheduling_strategy == 'qoe-avg':
+            self.request_tracker = QoETracker(self.qoe_required, self.get_prompt_len(), 'avg')
+        elif scheduling_strategy == 'qoe-min':
+            self.request_tracker = QoETracker(self.qoe_required, self.get_prompt_len(), 'min')
         elif scheduling_strategy == 'fcfs':
             self.request_tracker = ServiceTracker()
+        else:
+            raise ValueError(f"Invalid scheduling strategy: {scheduling_strategy}") 
         self.arrival_time = arrival_time 
         self.preemption_times = 0
     
