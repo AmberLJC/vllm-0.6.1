@@ -303,11 +303,8 @@ def detokenize_incrementally(
         prefix_text = tokenizer.convert_tokens_to_string(
             output_tokens[prefix_offset:read_offset])
         
-        if prefix_offset > len(output_tokens):
-            new_text = ""
-        else:
-            new_text = tokenizer.convert_tokens_to_string(
-                output_tokens[prefix_offset:])
+        new_text = tokenizer.convert_tokens_to_string(
+            output_tokens[prefix_offset:])
     else:
         prefix_text = _convert_tokens_to_string_with_added_encoders(
             tokenizer,

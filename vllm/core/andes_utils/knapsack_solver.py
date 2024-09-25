@@ -11,7 +11,7 @@ class KnapSack():
                  ) -> None:
         self.solver = solver 
         # TODO: move this to somewhere else
-        self.delta_t = 50 
+        self.delta_t = 50
         self.block_size = block_size 
         self.total_available_blocks = total_available_blocks 
         self.token_latency = 0.05 

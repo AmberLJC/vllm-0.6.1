@@ -30,7 +30,7 @@ class AndesScheduler(Scheduler):
         self.total_num_requests = 0
         self.total_num_preemptions = 0
         self.preemption_freq = 2
-    
+   
     def add_seq_group(self, seq_group: SequenceGroup) -> None:
         # Add sequence groups to the waiting queue.
         self.waiting.append(seq_group)
@@ -104,7 +104,6 @@ class AndesScheduler(Scheduler):
             self.running.remove(seq_group)
             # logger.info(f"[Andes] Evict - {preempted_mode} req - {seq_group.request_id}")
         preempted += len(seq_to_evict)
-        self.total_num_preemptions += preempted
 
         # step 3. if there is new request to admit then do not schedule decode
         if seq_to_admit:
@@ -128,6 +127,9 @@ class AndesScheduler(Scheduler):
             self.running.extend(running_scheduled.decode_seq_groups_list)
             self.waiting.extendleft(running_scheduled.preempted)
             self.swapped.extend(running_scheduled.swapped_out)
+            preempted += (len(running_scheduled.preempted) + len(running_scheduled.swapped_out))
+
+        self.total_num_preemptions += preempted
 
         # step 5. swap in requests, add to the running list
         # swap in happen only before decoding, no swap in on prefill

@@ -294,23 +294,26 @@ class LLMEngine:
 
         self.stats = []
         if envs.VLLM_SYSTEM_LOGGING_FILE is None:
-            VLLM_SYSTEM_LOGGING_FILE = '/vllm/examples/request_dispatcher/system_logs'
+            self.VLLM_SYSTEM_LOGGING_FILE = '/vllm/examples/request_dispatcher/system_logs'
         
-        if not os.path.exists(VLLM_SYSTEM_LOGGING_FILE):
+        if not os.path.exists(self.VLLM_SYSTEM_LOGGING_FILE):
             raise RuntimeError(
                 "Could not find logging file. File does not exist: %s",
-                VLLM_SYSTEM_LOGGING_FILE)
+                self.VLLM_SYSTEM_LOGGING_FILE)
+        self.last_print_time = time.time()
+        date = datetime.datetime.fromtimestamp(self.last_print_time) 
+        self.log_formatted_date = date.strftime('%Y-%m-%d %H:%M')
 
-        def dump_stats() -> None:
-            # dump list to a file
-            date = datetime.datetime.fromtimestamp(time.time())
-            formatted_date = date.strftime('%Y-%m-%d %H:%M')
+        # def dump_stats() -> None:
+        #     # dump list to a file
+        #     date = datetime.datetime.fromtimestamp(time.time())
+        #     formatted_date = date.strftime('%Y-%m-%d %H:%M')
             
-            with open(f'{VLLM_SYSTEM_LOGGING_FILE}/{formatted_date}-sys-stats.txt', 'w') as f:
-                for stats in self.stats:
-                    f.write(f"{stats}\n")
+        #     with open(f'{VLLM_SYSTEM_LOGGING_FILE}/{formatted_date}-sys-stats.txt', 'w') as f:
+        #         for stats in self.stats:
+        #             f.write(f"{stats}\n")
         
-        atexit.register(dump_stats)
+        # atexit.register(dump_stats)
 
         if not self.model_config.skip_tokenizer_init:
             self.tokenizer = self._init_tokenizer()
@@ -1102,8 +1105,9 @@ class LLMEngine:
         # LLMEngine/AsyncLLMEngine directly
         # TODO: bug here
         if is_async:  
-            stats = self._get_short_stats(scheduler_outputs)
-            self.stats.append(stats)
+            self._get_short_stats(scheduler_outputs)
+            # self.stats.append(stats)
+            
         #     # Log stats.
         #     self.do_log_stats(scheduler_outputs, outputs, finished_before, skip)
         #     # Tracing
@@ -1423,69 +1427,45 @@ class LLMEngine:
                 logger.log(stats)
 
     def _get_short_stats(self,
-                        scheduler_outputs: Optional[SchedulerOutputs]) -> Stats:
+                        scheduler_outputs: Optional[SchedulerOutputs]):
         now = time.time()
+        if now - self.last_print_time > 1: 
+            num_running_sys = sum(
+                len(scheduler.running) for scheduler in self.scheduler)
+            num_swapped_sys = sum(
+                len(scheduler.swapped) for scheduler in self.scheduler)
+            num_waiting_sys = sum(
+                len(scheduler.waiting) for scheduler in self.scheduler)
 
-        num_running_sys = sum(
-            len(scheduler.running) for scheduler in self.scheduler)
-        num_swapped_sys = sum(
-            len(scheduler.swapped) for scheduler in self.scheduler)
-        num_waiting_sys = sum(
-            len(scheduler.waiting) for scheduler in self.scheduler)
+            num_total_gpu = self.cache_config.num_gpu_blocks
+            gpu_cache_usage_sys = 0.
+            if num_total_gpu is not None:
+                num_free_gpu = sum(
+                    scheduler.block_manager.get_num_free_gpu_blocks()
+                    for scheduler in self.scheduler)
+                gpu_cache_usage_sys = 1.0 - (num_free_gpu / num_total_gpu)
 
-        num_total_gpu = self.cache_config.num_gpu_blocks
-        gpu_cache_usage_sys = 0.
-        if num_total_gpu is not None:
-            num_free_gpu = sum(
-                scheduler.block_manager.get_num_free_gpu_blocks()
-                for scheduler in self.scheduler)
-            gpu_cache_usage_sys = 1.0 - (num_free_gpu / num_total_gpu)
+            num_total_cpu = self.cache_config.num_cpu_blocks
+            cpu_cache_usage_sys = 0.
+            if num_total_cpu is not None and num_total_cpu > 0:
+                num_free_cpu = sum(
+                    scheduler.block_manager.get_num_free_cpu_blocks()
+                    for scheduler in self.scheduler)
+                cpu_cache_usage_sys = 1.0 - (num_free_cpu / num_total_cpu)
 
-        num_total_cpu = self.cache_config.num_cpu_blocks
-        cpu_cache_usage_sys = 0.
-        if num_total_cpu is not None and num_total_cpu > 0:
-            num_free_cpu = sum(
-                scheduler.block_manager.get_num_free_cpu_blocks()
-                for scheduler in self.scheduler)
-            cpu_cache_usage_sys = 1.0 - (num_free_cpu / num_total_cpu)
+            num_preemption_iter = (0 if scheduler_outputs is None else
+                                scheduler_outputs.preempted)
 
-        num_preemption_iter = (0 if scheduler_outputs is None else
-                               scheduler_outputs.preempted)
-
-
-      
-        return Stats(
-            now=now,
-            # System stats
-            #   Scheduler State
-            num_running_sys=num_running_sys,
-            num_swapped_sys=num_swapped_sys,
-            num_waiting_sys=num_waiting_sys,
-            #   KV Cache Usage in %
-            gpu_cache_usage_sys=gpu_cache_usage_sys,
-            cpu_cache_usage_sys=cpu_cache_usage_sys,
-            #   Prefix Cache Hit Rate
-            cpu_prefix_cache_hit_rate=0,
-            gpu_prefix_cache_hit_rate=0,
-
-            # Iteration stats
-            num_prompt_tokens_iter=0,
-            num_generation_tokens_iter=0,
-            time_to_first_tokens_iter=0,
-            time_per_output_tokens_iter=0,
-            spec_decode_metrics=0,
-            num_preemption_iter=num_preemption_iter,
-
-            # Request stats
-            #   Latency
-            time_e2e_requests=0,
-            #   Metadata
-            num_prompt_tokens_requests=0,
-            num_generation_tokens_requests=0,
-            best_of_requests=0,
-            n_requests=0,
-            finished_reason_requests=0,
-        )
+        
+            log_result = f'[{int(now)}] System Stats: Running: {num_running_sys},  ' \
+                            f'  - Swapped: {num_swapped_sys},  ' \
+                            f'  - Waiting: {num_waiting_sys},  ' \
+                            f'  - GPU Cache Usage: {gpu_cache_usage_sys},  ' \
+                            f'  - CPU Cache Usage: {cpu_cache_usage_sys}, - Num Preemptions: {num_preemption_iter}.' 
+            with open(f'{self.VLLM_SYSTEM_LOGGING_FILE}/{self.log_formatted_date}-sys-stats.txt', 'a') as f:
+                f.write(f"{log_result}\n")
+            self.last_print_time = now
+        # return stats
 
     def _get_stats(self,
                    scheduler_outputs: Optional[SchedulerOutputs],
