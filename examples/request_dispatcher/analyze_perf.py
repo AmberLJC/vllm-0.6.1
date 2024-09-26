@@ -260,6 +260,16 @@ def plot_scatter(x_list, y_list, file_name):
 	plt.ylabel('QoE')	
 	plt.savefig(f'{FIG_DIR}/{file_name}-len-qoe.png')
 
+def plot_arrival_histogram(time_list, file_name):
+	plt.figure()
+	# sample 5% data points
+	time_list = np.cumsum(time_list)
+	plt.hist(time_list, bins=40, alpha=0.7, label='Arrival Time') 
+	plt.xlabel('Time')
+	plt.ylabel('Frequency')
+	plt.legend()
+	plt.title(f'{file_name}')
+	plt.savefig(f'{FIG_DIR}/{file_name}-arrival-histogram.png')
 
 
 def plt_accumulate_token_over_time(log_data, file_name):
@@ -293,7 +303,7 @@ def plt_accumulate_token_over_time(log_data, file_name):
 			if  len(time_list) % 1 == 0:
 				group_time = np.array(time_list) - time_list[0]
 				y = np.arange(1, len(time_list)+1)
-				plt.plot(group_time, y, linestyle='-', markersize=1) 
+				plt.plot(group_time, y, linestyle='-', markersize=1)  
 
 	avg_qoe = sum(qoe_list) / len(qoe_list)
 	error = np.std(qoe_list, ddof=1)  
@@ -327,6 +337,7 @@ def plt_accumulate_token_over_time(log_data, file_name):
 
 	plt.savefig(f'{FIG_DIR}/{file_name}-accumulated-token.png')
 	plt.close()
+	# plot_arrival_histogram(log_data[0], file_name)
 
 	# plot_scatter(total_len_list, qoe_list, file_name)
 	print(log_results)
@@ -415,7 +426,8 @@ def analyze_one_trace(file_name):
 if __name__ == "__main__":
 	dir = './'#  'past/'  #
 	file_list = [
-		'2024-09-25 02:49-microsoft-Phi-3-mini-128k-instruct-code-burstgpt*2966-3.0(0.2)-hour-1424-fcfs.json'
+'2024-09-26 05:02-meta-llama-Meta-Llama-3.1-70B-sharegpt-multi-gamma*499-0.8(0.6)-day--1-qoe-avg.json',
+'2024-09-25 12:46-meta-llama-Meta-Llama-3.1-70B-sharegpt-multi-gamma*499-0.8(0.2)-day--1-fcfs.json',
 	]
 	if not file_list:
 		file_list = read_all_files()
