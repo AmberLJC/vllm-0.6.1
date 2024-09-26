@@ -61,15 +61,15 @@ def plot_system_stats(timestamps, running, swapped, waiting, gpu_cache_usage, fi
 
     plt.tight_layout() 
 
-    plt.savefig(f'figs/{file_name}-system_stats.png')
+    plt.savefig(f'fig/{file_name}-system_stats.png')
 
 
 def visualize_system_stats(file_name: str): 
-    log_file_path = f'system_logs/{file_name}'
+    log_file_path = f'{file_name}'
     timestamps, running, swapped, waiting, gpu_cache_usage = extract_system_stats_from_log(log_file_path)
     # print(timestamps, running, swapped, waiting, gpu_cache_usage)
 
-    plot_system_stats(timestamps, running, swapped, waiting, gpu_cache_usage, file_name)
+    plot_system_stats(timestamps, running, swapped, waiting, gpu_cache_usage, file_name.split('/')[-1])
  
 
 # Function to list files in a directory sorted by creation time

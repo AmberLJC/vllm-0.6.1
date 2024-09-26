@@ -67,6 +67,7 @@ class AndesScheduler(Scheduler):
 
         if self.total_num_preemptions > self.total_num_requests * self.preemption_freq:
             utilization = 0
+            # logger.info(f"[Andes] Preemption frequency reached: {self.total_num_preemptions} / {self.total_num_requests}")
         else:
             num_free_blocks = max(0, self.block_manager.gpu_allocator.get_num_free_blocks() - len(self.running)) 
             utilization = (self.num_total_gpu_blocks - num_free_blocks) / self.num_total_gpu_blocks
@@ -104,6 +105,7 @@ class AndesScheduler(Scheduler):
             self.running.remove(seq_group)
             # logger.info(f"[Andes] Evict - {preempted_mode} req - {seq_group.request_id}")
         preempted += len(seq_to_evict)
+        self.total_num_preemptions += preempted
 
         # step 3. if there is new request to admit then do not schedule decode
         if seq_to_admit:
@@ -129,7 +131,6 @@ class AndesScheduler(Scheduler):
             self.swapped.extend(running_scheduled.swapped_out)
             preempted += (len(running_scheduled.preempted) + len(running_scheduled.swapped_out))
 
-        self.total_num_preemptions += preempted
 
         # step 5. swap in requests, add to the running list
         # swap in happen only before decoding, no swap in on prefill
