@@ -14,7 +14,7 @@ import httpx
 import aiohttp
 import datetime
 
-
+from read_sys_log import visualize_system_stats, list_files_by_creation_time
 from analyze_perf import analyze_one_trace, plot_cdf_together
 # SYSTEM_PROMPT = "You are an artificial intelligence assistant that gives helpful answers to the user's questions or instructions."
 DEFAULT_TIMEOUT = aiohttp.ClientTimeout(total=3 * 3600)
@@ -185,6 +185,9 @@ async def main(args):
     # plot_cdf_together({result_file: metric_dict}, result_file)
     with open('results.log', 'a') as file:
         file.write(total_duration)
+    
+    visualize_system_stats(list_files_by_creation_time('system_logs'))
+    
 
     
 if __name__ == "__main__":

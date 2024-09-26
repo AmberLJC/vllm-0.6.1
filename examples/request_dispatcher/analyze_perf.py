@@ -13,6 +13,7 @@ from vllm.core.andes_utils.qoe_tracker import QoETracker
 
 # Read the log file and extract the data
 
+
 FIG_DIR = 'fig'
 def read_log(filename, log_data):
 	with open(filename, 'r') as file:
