@@ -128,7 +128,7 @@ class AvgQoEOptimizer(QoEOptimizer):
         else:
             qoe_preempt =  1 - ((expected_response_len - length) / expected_response_len) ** 2
         # print(f'qoe_serve: {qoe_serve}, qoe_preempt: {qoe_preempt}')
-        return (qoe_serve - qoe_preempt) * (1 + 0.1 * running)
+        return (qoe_serve - qoe_preempt) * (1+running*0.1)
 
  
 class MinQoEOptimizer(QoEOptimizer):  

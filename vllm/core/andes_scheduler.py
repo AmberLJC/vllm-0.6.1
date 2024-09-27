@@ -29,7 +29,8 @@ class AndesScheduler(Scheduler):
             self.user_specified_preemption_mode = PreemptionMode.RECOMPUTE
         self.total_num_requests = 0
         self.total_num_preemptions = 0
-        self.preemption_freq = 2
+        self.preemption_freq = .5
+        self.iter = 0
    
     def add_seq_group(self, seq_group: SequenceGroup) -> None:
         # Add sequence groups to the waiting queue.
@@ -45,6 +46,7 @@ class AndesScheduler(Scheduler):
         The policy is designed to optimize avg QoE under 
         GPU memory pressure by preempting. 
         """
+        self.iter += 1
         
         enable_chunking = False
         # Include running requests to the budget.
@@ -65,14 +67,13 @@ class AndesScheduler(Scheduler):
         running_scheduled = SchedulerRunningOutputs.create_empty()
         swapped_in = SchedulerSwappedInOutputs.create_empty()
 
-        if self.total_num_preemptions > self.total_num_requests * self.preemption_freq:
+        if self.iter % 10 != 0 or self.total_num_preemptions > self.total_num_requests * self.preemption_freq: 
             utilization = 0
-            # logger.info(f"[Andes] Preemption frequency reached: {self.total_num_preemptions} / {self.total_num_requests}")
+            # logger.info(f"[Andes] Preemption frequency: {self.total_num_preemptions} / {self.total_num_requests}")
         else:
             num_free_blocks = max(0, self.block_manager.gpu_allocator.get_num_free_blocks() - len(self.running)) 
             utilization = (self.num_total_gpu_blocks - num_free_blocks) / self.num_total_gpu_blocks
-        # TODO: profile when starting the instance
-        latency_function = None
+            # latency_function = None
 
         # step 1. Andes decides the scheduling change
         seq_to_admit, seq_to_swap_in, seq_to_evict = \
@@ -81,17 +82,13 @@ class AndesScheduler(Scheduler):
                                                     self.waiting, 
                                                     self.swapped, 
                                                     utilization, 
-                                                    latency_function)
+                                                    None)
         # logger.info("[Andes] Admitting %d, swapping in %d, evicting %d", 
         #             len(seq_to_admit), len(seq_to_swap_in), len(seq_to_evict))
 
         preempted = 0 
         blocks_to_swap_out: List[Tuple[int, int]] = []
         blocks_to_copy: List[Tuple[int, int]] = []
-        
-        # decode_seq_groups: List[ScheduledSequenceGroup] = ret.decode_seq_groups
-        # prefill_seq_groups: List[ScheduledSequenceGroup] = ret.prefill_seq_groups
-
         blocks_to_swap_in: List[Tuple[int, int]] = [] 
 
         # step 2. evict requests to make room for other requests
@@ -107,8 +104,12 @@ class AndesScheduler(Scheduler):
         preempted += len(seq_to_evict)
         self.total_num_preemptions += preempted
 
+        if len(seq_to_evict) > 0:
+            logger.info(f"[Andes] Evicting {len(seq_to_evict)} requests")
+
         # step 3. if there is new request to admit then do not schedule decode
         if seq_to_admit:
+            logger.info(f"[Andes] Admitting {len(seq_to_admit)} requests")
             prefills = self._schedule_prefills(budget,
                                                curr_loras,
                                                seq_to_admit,

@@ -182,7 +182,7 @@ async def main(args):
     total_duration = f"Total time taken: {time.time()-start_time}. \n"
     print(total_duration)
     metric_dict = analyze_one_trace(result_file)
-    # plot_cdf_together({result_file: metric_dict}, result_file)
+    plot_cdf_together({result_file: metric_dict}, result_file)
     with open('results.log', 'a') as file:
         file.write(total_duration)
     

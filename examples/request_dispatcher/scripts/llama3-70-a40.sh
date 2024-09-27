@@ -69,15 +69,15 @@ run_model() {
 # Total time taken: 368. 
 
 # --------------- Start qoe-avg for microsoft/Phi-3-mini-128k-instruct ----------
+#  >>>>>>> 2024-09-25 01:23-microsoft-Phi-3-mini-128k-instruct-sharegpt-multi-gamma*249-0.8(0.4)-day--1-qoe-avg.json (250 requests) <<<<<<<<<
+# Avg Qoe: 0.94, Perfect Qoe: 0.62. Throughput: 0.06 req/s. TTFT 1.78 s. Pause frequency: 0.19. Avg response 416.72. 
+# Total time taken: 391.74069571495056. 
 #  >>>>>>> 2024-09-25 01:10-microsoft-Phi-3-mini-128k-instruct-sharegpt-multi-gamma*249-0.8(0.2)-day--1-qoe-avg.json (250 requests) <<<<<<<<<
 # Avg Qoe: 0.95, Perfect Qoe: 0.60. Throughput: 0.06 req/s. TTFT 1.11 s. Pause frequency: 0.07. Avg response 419.06. 
 # Total time taken: 415.3263506889343. 
 #  >>>>>>> 2024-09-25 01:17-microsoft-Phi-3-mini-128k-instruct-sharegpt-multi-gamma*249-0.8(0.1)-day--1-qoe-avg.json (250 requests) <<<<<<<<<
 # Avg Qoe: 0.90, Perfect Qoe: 0.43. Throughput: 0.07 req/s. TTFT 2.35 s. Pause frequency: 0.16. Avg response 419.98. 
 # Total time taken: 368.96756410598755. 
-#  >>>>>>> 2024-09-25 01:23-microsoft-Phi-3-mini-128k-instruct-sharegpt-multi-gamma*249-0.8(0.4)-day--1-qoe-avg.json (250 requests) <<<<<<<<<
-# Avg Qoe: 0.94, Perfect Qoe: 0.62. Throughput: 0.06 req/s. TTFT 1.78 s. Pause frequency: 0.19. Avg response 416.72. 
-# Total time taken: 391.74069571495056. 
 
 
     python request_dispatcher.py --model "$model_name" \

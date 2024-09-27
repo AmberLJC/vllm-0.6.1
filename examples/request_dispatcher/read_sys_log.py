@@ -42,7 +42,7 @@ def plot_system_stats(timestamps, running, swapped, waiting, gpu_cache_usage, fi
 
     ax1.set_xlabel('Timestamp')
     ax1.set_ylabel('Queue Length', color='black')
-    ymax = max(max(running), max(swapped), max(waiting))
+    ymax = max(max(running), max(swapped), max(waiting)) + 1
     ax1.set_ylim([0, ymax])  # Scaling for running, swapped, and waiting
 
     # Add a second y-axis for GPU Cache Usage (scale of 0 to 1)
