@@ -1,6 +1,5 @@
 import argparse
-import json
-import yaml
+import json 
 import asyncio
 from typing import Iterable, List, Generator
 from datetime import datetime
@@ -8,9 +7,7 @@ import pandas as pd
 import numpy as np
 import requests, time
 from typing import AsyncGenerator
-from collections import defaultdict
-import subprocess
-import httpx
+from collections import defaultdict 
 import aiohttp
 import datetime
 
@@ -20,6 +17,7 @@ from analyze_perf import analyze_one_trace, plot_cdf_together
 DEFAULT_TIMEOUT = aiohttp.ClientTimeout(total=3 * 3600)
 
 np.random.seed(42)
+
  
 async def single_request(prompt_config: dict,  
                    model_config: dict,
@@ -182,13 +180,11 @@ async def main(args):
     total_duration = f"Total time taken: {time.time()-start_time}. \n"
     print(total_duration)
     metric_dict = analyze_one_trace(result_file)
-    plot_cdf_together({result_file: metric_dict}, result_file)
+    # plot_cdf_together({result_file: metric_dict}, result_file)
     with open('results.log', 'a') as file:
         file.write(total_duration)
     
-    visualize_system_stats(list_files_by_creation_time('system_logs'))
-    
-
+    visualize_system_stats(list_files_by_creation_time('system_logs'), arrival_intervals.tolist())
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

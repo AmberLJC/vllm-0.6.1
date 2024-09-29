@@ -29,7 +29,7 @@ class AndesScheduler(Scheduler):
             self.user_specified_preemption_mode = PreemptionMode.RECOMPUTE
         self.total_num_requests = 0
         self.total_num_preemptions = 0
-        self.preemption_freq = .5
+        self.preemption_freq = .3
         self.iter = 0
    
     def add_seq_group(self, seq_group: SequenceGroup) -> None:
@@ -73,7 +73,7 @@ class AndesScheduler(Scheduler):
         else:
             num_free_blocks = max(0, self.block_manager.gpu_allocator.get_num_free_blocks() - len(self.running)) 
             utilization = (self.num_total_gpu_blocks - num_free_blocks) / self.num_total_gpu_blocks
-            # latency_function = None
+
 
         # step 1. Andes decides the scheduling change
         seq_to_admit, seq_to_swap_in, seq_to_evict = \
@@ -109,7 +109,7 @@ class AndesScheduler(Scheduler):
 
         # step 3. if there is new request to admit then do not schedule decode
         if seq_to_admit:
-            logger.info(f"[Andes] Admitting {len(seq_to_admit)} requests")
+            # logger.info(f"[Andes] Admitting {len(seq_to_admit)} requests")
             prefills = self._schedule_prefills(budget,
                                                curr_loras,
                                                seq_to_admit,
@@ -547,6 +547,7 @@ class AndesScheduler(Scheduler):
             if (num_new_tokens == 0
                     or not budget.can_schedule(num_new_tokens=num_new_tokens,
                                                num_new_seqs=num_new_seqs)):
+                # logger.info(f"Cannot schedule requests. num_new_tokens: {num_new_tokens}, num_new_seqs: {num_new_seqs}")
                 break
 
             # Can schedule this request.

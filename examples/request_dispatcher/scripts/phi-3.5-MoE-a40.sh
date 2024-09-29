@@ -40,7 +40,7 @@ run_model() {
 
     python request_dispatcher.py --model "$model_name" \
         --num-requests 250 \
-        --arrival-rate 0.1 \
+        --arrival-rate 0.05 \
         --max-tokens 25000 \
         --arrival-trace "$arrival" \
         --scheduling "$SCHEDULE" \
@@ -125,6 +125,6 @@ run_model() {
 } 
 
 
-# run_model "fcfs"
-# sleep 10
+run_model "fcfs"
+sleep 10
 run_model "qoe-avg"

@@ -5,7 +5,7 @@ ps aux | grep python | awk '{print $2}' | xargs -r kill -9
 run_model() {
     cd /vllm/examples/request_dispatcher 
     local SCHEDULE=$1  # Accepts scheduling strategy as an argument
-    local model_name="microsoft/Phi-3.5-MoE-instruct" # "mistralai/Mixtral-8x7B-Instruct-v0.1"
+    local model_name="microsoft/Phi-3-mini-128k-instruct"  
     local arrival="gamma"
     echo "--------------- Start $SCHEDULE for $model_name ----------" >> results.log
 
@@ -26,49 +26,51 @@ run_model() {
 # ==================================   arxiv  ================================  
 
     # python request_dispatcher.py --model "$model_name" \
-    #     --num-requests 1000 \
-    #     --arrival-rate 0.5 \
+    #     --num-requests 200 \
+    #     --arrival-rate 0.8 \
     #     --max-tokens 30000 \
     #     --arrival-trace "$arrival" \
     #     --scheduling "$SCHEDULE" \
     #     --burst 0.1 \
     #     --prompt-trace arxiv 
-
-    #    python request_dispatcher.py --model "$model_name" \
-    #     --num-requests 1000 \
-    #     --arrival-rate 0.5 \
+    
+    # python request_dispatcher.py --model "$model_name" \
+    #     --num-requests 200 \
+    #     --arrival-rate 0.8 \
     #     --max-tokens 30000 \
     #     --arrival-trace "$arrival" \
     #     --scheduling "$SCHEDULE" \
-    #     --burst 0.05 \
+    #     --burst 0.5 \
     #     --prompt-trace arxiv 
 
-    
+
 # ==================================  sharegpt-multi  ================================ 
+
+# ========== TODO ==========
+    # python request_dispatcher.py --model "$model_name" \
+    #     --num-requests 1000 \
+    #     --arrival-rate 5.5 \
+    #     --max-tokens 30000 \
+    #     --arrival-trace "$arrival" \
+    #     --scheduling "$SCHEDULE" \
+    #     --burst 0.01 \
+    #     --prompt-trace sharegpt-multi 
+ 
+    # python request_dispatcher.py --model "$model_name" \
+    #     --num-requests 1000 \
+    #     --arrival-rate 5.5 \
+    #     --max-tokens 30000 \
+    #     --arrival-trace "$arrival" \
+    #     --scheduling "$SCHEDULE" \
+    #     --burst 0.005 \
+    #     --prompt-trace sharegpt-multi 
+ 
+
+# ================================== code ================================ 
 
     python request_dispatcher.py --model "$model_name" \
         --num-requests 2000 \
-        --arrival-rate 5 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --burst 0.05 \
-        --prompt-trace sharegpt-multi 
- 
-    python request_dispatcher.py --model "$model_name" \
-        --num-requests 2000 \
-        --arrival-rate 5 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --burst 0.1 \
-        --prompt-trace sharegpt-multi 
- 
-# ================================== code ================================ 
- 
-    python request_dispatcher.py --model "$model_name" \
-        --num-requests 1500 \
-        --arrival-rate 2 \
+        --arrival-rate 1.7 \
         --max-tokens 30000 \
         --arrival-trace "$arrival" \
         --burst 0.1 \
@@ -84,3 +86,4 @@ run_model() {
 run_model "fcfs"
 sleep 10
 run_model "qoe-avg"
+

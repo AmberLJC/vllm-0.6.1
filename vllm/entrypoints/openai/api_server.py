@@ -324,7 +324,7 @@ async def create_embedding(request: EmbeddingRequest, raw_request: Request):
 
     assert_never(generator)
 
-envs.VLLM_TORCH_PROFILER_DIR="/vllm/examples/request_dispatcher/profile_trace"
+# envs.VLLM_TORCH_PROFILER_DIR="/vllm/examples/request_dispatcher/profile_trace"
 if envs.VLLM_TORCH_PROFILER_DIR:
     logger.warning(
         "Torch Profiler is enabled in the API server. This should ONLY be "

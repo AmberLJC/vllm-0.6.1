@@ -1,7 +1,8 @@
 import re
 import os
 import matplotlib.pyplot as plt
-import sys
+import numpy as np
+
 # Function to extract the necessary information from the log file
 def extract_system_stats_from_log(file_path):
     # Lists to store extracted values
@@ -31,45 +32,57 @@ def extract_system_stats_from_log(file_path):
 
 
 
-def plot_system_stats(timestamps, running, swapped, waiting, gpu_cache_usage, file_name):
+
+def plot_system_stats(timestamps, running, swapped, waiting, gpu_cache_usage, histogram_data, file_name):
     # Plotting the data with different scales for GPU Cache Usage and other metrics
-    fig, ax1 = plt.subplots(figsize=(20, 6))
-    timestamps = [t - timestamps[0] for t in timestamps]
+    fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(20, 10), gridspec_kw={'height_ratios': [4, 1]})
+    
+    timestamps = [t - timestamps[0] for t in timestamps]  # Normalize timestamps
+
     # Plot running, swapped, and waiting on the left y-axis (scale of 0 to 100)
-    ax1.plot(timestamps, running, label='Running', color='blue' )
-    ax1.plot(timestamps, swapped, label='Swapped', color='red' )
-    ax1.plot(timestamps, waiting, label='Waiting', color='green' )
+    ax1.plot(timestamps, running, label='Running', color='blue')
+    ax1.plot(timestamps, swapped, label='Swapped', color='red')
+    ax1.plot(timestamps, waiting, label='Waiting', color='green')
 
     ax1.set_xlabel('Timestamp')
     ax1.set_ylabel('Queue Length', color='black')
     ymax = max(max(running), max(swapped), max(waiting)) + 1
     ax1.set_ylim([0, ymax])  # Scaling for running, swapped, and waiting
+    ax1.set_xlim([0, timestamps[-1]])
 
     # Add a second y-axis for GPU Cache Usage (scale of 0 to 1)
     ax2 = ax1.twinx()
-    ax2.plot(timestamps, gpu_cache_usage, label='GPU Cache Usage', color='purple' )
+    ax2.plot(timestamps, gpu_cache_usage, label='GPU Cache Usage', color='purple')
     ax2.set_ylabel('GPU Cache Usage (%)', color='purple')
     ax2.set_ylim([0, 1])  # Scaling for GPU cache usage
+    ax2.set_xlim([0, timestamps[-1]])
 
     # Add legends for both axes
     ax1.legend(loc='upper left')
     ax2.legend(loc='upper right')
 
+    # Add histogram plot under the main figure
+    ax3.hist(histogram_data, bins=50, color='grey', alpha=0.7)
+    ax3.set_xlabel('Request Arrival')
+    ax3.set_ylabel('Frequency')
+    ax3.set_xlim([0, timestamps[-1]])
+
     # Title and grid
-    plt.title('System Stats Over Time')
+    plt.title('System Stats Over Time ')
     plt.grid(True)
 
+    # Save the figure to file
     plt.tight_layout() 
-
     plt.savefig(f'fig/{file_name}-system_stats.png')
 
 
-def visualize_system_stats(file_name: str): 
+def visualize_system_stats(file_name: str, arrival_list: list): 
     log_file_path = f'{file_name}'
     timestamps, running, swapped, waiting, gpu_cache_usage = extract_system_stats_from_log(log_file_path)
     # print(timestamps, running, swapped, waiting, gpu_cache_usage)
+    arrival_list = np.cumsum(arrival_list)
 
-    plot_system_stats(timestamps, running, swapped, waiting, gpu_cache_usage, file_name.split('/')[-1])
+    plot_system_stats(timestamps, running, swapped, waiting, gpu_cache_usage, arrival_list, file_name.split('/')[-1])
  
 
 # Function to list files in a directory sorted by creation time

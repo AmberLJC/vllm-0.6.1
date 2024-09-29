@@ -16,13 +16,12 @@ class KnapSack():
             self.solver_func = KnapSack._greedy_knapsack
         else:
             raise ValueError(f"Solver {self.solver} is not supported")
-        # TODO: move this to somewhere else
+
         self.delta_t = 50
         self.block_size = block_size 
         self.total_available_blocks = total_available_blocks 
-        self.token_latency = 0.05 
-        self.max_num_preempt = 2
-    import time
+        self.token_latency = 0.02
+        self.max_num_preempt = 1
 
     def pick_requests(self, running, waiting, swapped): 
         # Helper functions to get context block for list and individual requests
@@ -39,12 +38,7 @@ class KnapSack():
         # Precompute run and pause values for running, waiting, and swapped
         run_value_list = [r.get_value(now, self.token_latency, self.delta_t, True) for r in running] 
         pause_value_list = [r.get_value(now, self.token_latency, self.delta_t, False) for r in waiting + swapped]
-
-        # Precompute max value for preemption decisions
-        max_pause_value = max(pause_value_list, default=1)
-
-        # Determine items that could be preempted (those with value <= max_pause_value)
-        maybe_preempt = [(i, r) for i, r in enumerate(running) if run_value_list[i] <= max_pause_value][:self.max_num_preempt]
+        maybe_preempt = [(i, r) for i, r in enumerate(running) if run_value_list[i] <= max(pause_value_list, default=1)][:self.max_num_preempt]
 
         # Use set for efficient index checking when keeping non-preempted running items
         preempt_indices = {i for i, _ in maybe_preempt}
@@ -69,14 +63,19 @@ class KnapSack():
         # context_block_list = get_context_block_list(running + waiting + swapped)
         # value_list = [r.get_value(now, self.token_latency, self.delta_t, True) for r in running] 
         # value_list += [r.get_value(now, self.token_latency, self.delta_t, False) for r in waiting + swapped] 
-        
         # max_value, best_plan = self.solver_func(self.total_available_blocks, context_block_list, value_list )
         # return [(running + waiting + swapped)[i] for i in best_plan]  
+
+    def get_context_block(self, request):
+        return round((request.get_len() + 1) / self.block_size + 0.5)
 
     def schedule_requests(self, budget, running, waiting, swapped, utilization, latency_function):
         # TODO: consider budget
         if utilization < 0.9:
-            return deque(waiting), deque(swapped), deque() 
+            # # sort by value
+            now = time.monotonic()
+            waiting = sorted(waiting, key=lambda x: x.get_value(now, self.token_latency, self.delta_t, False)/self.get_context_block(x), reverse=True)
+            return deque(waiting), deque(swapped), deque()
         
         new_running = self.pick_requests(running, waiting, swapped)
         seq_to_admit = [r for r in new_running if r in waiting]
@@ -103,8 +102,7 @@ class KnapSack():
         items = [(v / w, w, v, i) for i, (v, w) in enumerate(zip(values, weights))]
         items.sort(reverse=True, key=lambda x: x[0]) 
 
-        current_weight = 0
-        current_value = 0
+        current_weight = current_value = 0
         picked_items = []
 
         for _, weight, value, index in items:
@@ -113,10 +111,10 @@ class KnapSack():
                 current_value += value
                 picked_items.append(index)
             else:
-                if current_weight / capacity < 0.9:
-                    continue
-                else:
-                    break
+                # if current_weight / capacity < 0.9:
+                #     continue
+                # else:
+                break
 
         return current_value, picked_items
 

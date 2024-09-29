@@ -300,7 +300,7 @@ def plt_accumulate_token_over_time(log_data, file_name):
 			input_len = cal_input_len(entry['input'], tokenizer)
 			total_len_list.append( len(time_list) + input_len ) 
 
-			if  len(time_list) % 1 == 0:
+			if  len(time_list) % 10 == 0:
 				group_time = np.array(time_list) - time_list[0]
 				y = np.arange(1, len(time_list)+1)
 				plt.plot(group_time, y, linestyle='-', markersize=1)  
