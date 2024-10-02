@@ -22,65 +22,58 @@ run_model() {
         # --swap-space 20 \
     
     sleep 80
-    
-# ==================================   arxiv  ================================  
+# ==================================  sharegpt-multi  ================================ 
 
     # python request_dispatcher.py --model "$model_name" \
-    #     --num-requests 1000 \
-    #     --arrival-rate 0.5 \
-    #     --max-tokens 30000 \
-    #     --arrival-trace "$arrival" \
-    #     --scheduling "$SCHEDULE" \
-    #     --burst 0.1 \
-    #     --prompt-trace arxiv 
-
-    #    python request_dispatcher.py --model "$model_name" \
-    #     --num-requests 1000 \
-    #     --arrival-rate 0.5 \
+    #     --num-requests 2000 \
+    #     --arrival-rate 4 \
     #     --max-tokens 30000 \
     #     --arrival-trace "$arrival" \
     #     --scheduling "$SCHEDULE" \
     #     --burst 0.05 \
-    #     --prompt-trace arxiv 
-
-    
-# ==================================  sharegpt-multi  ================================ 
-
-    python request_dispatcher.py --model "$model_name" \
-        --num-requests 2000 \
-        --arrival-rate 5 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --burst 0.05 \
-        --prompt-trace sharegpt-multi 
+    #     --prompt-trace sharegpt-multi  
  
     python request_dispatcher.py --model "$model_name" \
         --num-requests 2000 \
-        --arrival-rate 5 \
+        --arrival-rate 4 \
         --max-tokens 30000 \
         --arrival-trace "$arrival" \
         --scheduling "$SCHEDULE" \
-        --burst 0.1 \
-        --prompt-trace sharegpt-multi 
+        --burst 0.01 \
+        --prompt-trace sharegpt-multi  
+    
+# ==================================   arxiv  ================================  
+
+    python request_dispatcher.py --model "$model_name" \
+        --num-requests 1000 \
+        --arrival-rate 0.5 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --scheduling "$SCHEDULE" \
+        --burst 0.2 \
+        --prompt-trace arxiv  
+
+    
  
 # ================================== code ================================ 
  
-    python request_dispatcher.py --model "$model_name" \
-        --num-requests 1500 \
-        --arrival-rate 2 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --burst 0.1 \
-        --scheduling "$SCHEDULE" \
-        --prompt-trace code
+    # python request_dispatcher.py --model "$model_name" \
+    #     --num-requests 1500 \
+    #     --arrival-rate 2 \
+    #     --max-tokens 30000 \
+    #     --arrival-trace "$arrival" \
+    #     --burst 0.1 \
+    #     --scheduling "$SCHEDULE" \
+    #     --prompt-trace code
 
     # Terminate python processes
     pkill python
     ps aux | grep python | awk '{print $2}' | xargs -r kill -9
+    cd /vllm/examples/request_dispatcher/scripts    
+    python send.py "Done running $SCHEDULE for $model_name"
 } 
 
 
-run_model "fcfs"
-sleep 10
+# run_model "fcfs"
+# sleep 10
 run_model "qoe-avg"

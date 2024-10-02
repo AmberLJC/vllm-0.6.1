@@ -150,7 +150,8 @@ def read_prompt_trace(args: argparse.Namespace):
 async def main(args):
     start_time = time.time()
     model_file = args.model.replace("/", "-")
-    date = datetime.datetime.fromtimestamp(time.time())
+    now = time.time()
+    date = datetime.datetime.fromtimestamp(now)
 
     formatted_date = date.strftime('%Y-%m-%d %H:%M')
     prompt_trace = read_prompt_trace(args)
@@ -184,7 +185,7 @@ async def main(args):
     with open('results.log', 'a') as file:
         file.write(total_duration)
     
-    visualize_system_stats(list_files_by_creation_time('system_logs'), arrival_intervals.tolist())
+    visualize_system_stats(list_files_by_creation_time('system_logs'), arrival_intervals.tolist(), now)
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

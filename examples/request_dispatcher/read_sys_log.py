@@ -1,10 +1,11 @@
 import re
 import os
+import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 
 # Function to extract the necessary information from the log file
-def extract_system_stats_from_log(file_path):
+def extract_system_stats_from_log(file_path: str, start_time: float):
     # Lists to store extracted values
     timestamps = []
     running = []
@@ -21,7 +22,7 @@ def extract_system_stats_from_log(file_path):
     with open(file_path, 'r') as file:
         for line in file:
             match = pattern.search(line)
-            if match:
+            if match and int(match.group(1) )> int(start_time):
                 timestamps.append(int(match.group(1)))
                 running.append(int(match.group(2)))
                 swapped.append(int(match.group(3)))
@@ -33,8 +34,12 @@ def extract_system_stats_from_log(file_path):
 
 
 
-def plot_system_stats(timestamps, running, swapped, waiting, gpu_cache_usage, histogram_data, file_name):
+def plot_system_stats(timestamps, running, swapped, waiting, gpu_cache_usage, histogram_data):
     # Plotting the data with different scales for GPU Cache Usage and other metrics
+
+    d = datetime.datetime.fromtimestamp(timestamps[0]) 
+    d = d.strftime('%Y-%m-%d %H:%M')
+    file_name = f'{d}-system_stats'
     fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(20, 10), gridspec_kw={'height_ratios': [4, 1]})
     
     timestamps = [t - timestamps[0] for t in timestamps]  # Normalize timestamps
@@ -73,16 +78,16 @@ def plot_system_stats(timestamps, running, swapped, waiting, gpu_cache_usage, hi
 
     # Save the figure to file
     plt.tight_layout() 
-    plt.savefig(f'fig/{file_name}-system_stats.png')
+    plt.savefig(f'fig/{file_name}.png')
 
 
-def visualize_system_stats(file_name: str, arrival_list: list): 
-    log_file_path = f'{file_name}'
-    timestamps, running, swapped, waiting, gpu_cache_usage = extract_system_stats_from_log(log_file_path)
+def visualize_system_stats(file_name: str, arrival_list: list, start_time: float): 
+    # log_file_path = f'{file_name}'
+    timestamps, running, swapped, waiting, gpu_cache_usage = extract_system_stats_from_log(file_name, start_time)
     # print(timestamps, running, swapped, waiting, gpu_cache_usage)
     arrival_list = np.cumsum(arrival_list)
 
-    plot_system_stats(timestamps, running, swapped, waiting, gpu_cache_usage, arrival_list, file_name.split('/')[-1])
+    plot_system_stats(timestamps, running, swapped, waiting, gpu_cache_usage, arrival_list) #, file_name.split('/')[-1])
  
 
 # Function to list files in a directory sorted by creation time

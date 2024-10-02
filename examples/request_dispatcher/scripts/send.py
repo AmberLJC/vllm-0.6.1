@@ -4,7 +4,7 @@ from email.mime.multipart import MIMEMultipart
 import sys
 # Sender's email and password (use an "App Password" for Gmail)
 sender_email = "amberjcjj@gmail.com"
-sender_password = "xeja jjox blyo tbzw"
+sender_password = "kyuy pasf sfjr rdqj"
 # Recipient's email address
 recipient_email = "amberljc@umich.edu"
 
@@ -14,7 +14,7 @@ message["From"] = sender_email
 message["To"] = recipient_email
 message["Subject"] = "Experiment Progress"
 
-def read_log(file='logging.txt'):
+def read_log(file='../results.log'):
     try:
         with open(file, 'r') as file:
             lines = file.readlines()
@@ -29,10 +29,10 @@ def read_log(file='logging.txt'):
 
 # Add the email body
 job = str(sys.argv[1])
-body = f"{job} is done! \n" 
+# body = f"{job} is done! \n" 
 
-# body = f"{job} is done! \n" \
-#        f"Results: {read_log('/vllm/exp_logging.txt')}"
+body = f"{job} is done! \n" \
+       f"Results: {read_log('../results.log')}"
 message.attach(MIMEText(body, "plain"))
 
 try:

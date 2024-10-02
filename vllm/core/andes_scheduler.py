@@ -1,6 +1,6 @@
 from vllm.core.scheduler import * 
-
 from vllm.core.andes_utils.knapsack_solver import KnapSack
+from vllm.core.andes_utils.preemption_tracker import PreemptionTracker
 
 class AndesScheduler(Scheduler):
     """
@@ -27,15 +27,16 @@ class AndesScheduler(Scheduler):
             self.user_specified_preemption_mode = PreemptionMode.SWAP
         elif self.user_specified_preemption_mode == 'recompute':
             self.user_specified_preemption_mode = PreemptionMode.RECOMPUTE
-        self.total_num_requests = 0
-        self.total_num_preemptions = 0
-        self.preemption_freq = .3
+        
+        self.preempt_tracker = PreemptionTracker(900, 30)
+        self.request_arrival_tracker = PreemptionTracker(900, 30)
+        self.preemption_freq = .5
         self.iter = 0
    
     def add_seq_group(self, seq_group: SequenceGroup) -> None:
         # Add sequence groups to the waiting queue.
         self.waiting.append(seq_group)
-        self.total_num_requests += 1
+        self.request_arrival_tracker.add_request(seq_group.metrics.arrival_time)
 
     def _schedule(self) -> SchedulerOutputs:
         return self._schedule_qoe_aware()
@@ -47,7 +48,6 @@ class AndesScheduler(Scheduler):
         GPU memory pressure by preempting. 
         """
         self.iter += 1
-        
         enable_chunking = False
         # Include running requests to the budget.
         budget = SchedulingBudget(
@@ -67,9 +67,9 @@ class AndesScheduler(Scheduler):
         running_scheduled = SchedulerRunningOutputs.create_empty()
         swapped_in = SchedulerSwappedInOutputs.create_empty()
 
-        if self.iter % 10 != 0 or self.total_num_preemptions > self.total_num_requests * self.preemption_freq: 
+        if self.iter % 10 != 0 or \
+            self.preempt_tracker.get_request_count() > self.request_arrival_tracker.get_request_count() * self.preemption_freq: 
             utilization = 0
-            # logger.info(f"[Andes] Preemption frequency: {self.total_num_preemptions} / {self.total_num_requests}")
         else:
             num_free_blocks = max(0, self.block_manager.gpu_allocator.get_num_free_blocks() - len(self.running)) 
             utilization = (self.num_total_gpu_blocks - num_free_blocks) / self.num_total_gpu_blocks
@@ -102,7 +102,8 @@ class AndesScheduler(Scheduler):
             self.running.remove(seq_group)
             # logger.info(f"[Andes] Evict - {preempted_mode} req - {seq_group.request_id}")
         preempted += len(seq_to_evict)
-        self.total_num_preemptions += preempted
+        now = time.monotonic()
+        self.preempt_tracker.add_request(now, preempted)
 
         if len(seq_to_evict) > 0:
             logger.info(f"[Andes] Evicting {len(seq_to_evict)} requests")

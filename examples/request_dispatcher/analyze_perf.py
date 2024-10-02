@@ -426,8 +426,7 @@ def analyze_one_trace(file_name):
 if __name__ == "__main__":
 	dir = './'#  'past/'  #
 	file_list = [
-'2024-09-26 05:02-meta-llama-Meta-Llama-3.1-70B-sharegpt-multi-gamma*499-0.8(0.6)-day--1-qoe-avg.json',
-'2024-09-25 12:46-meta-llama-Meta-Llama-3.1-70B-sharegpt-multi-gamma*499-0.8(0.2)-day--1-fcfs.json',
+'2024-10-02 15:26-meta-llama-Meta-Llama-3.1-70B-arxiv-gamma*499-0.08(0.2)-day--1-qoe-avg.json'
 	]
 	if not file_list:
 		file_list = read_all_files()
