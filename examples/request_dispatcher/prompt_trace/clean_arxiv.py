@@ -3,6 +3,9 @@ import json
 from generate_qoe_trace import generate_tds_requirements
 file_path = '/data/amberljc/prompt_dataset/arxiv-dataset/selected_arvix.txt'
 np.random.seed(0)
+from transformers import AutoTokenizer
+tokenizer = AutoTokenizer.from_pretrained("microsoft/Phi-3-mini-128k-instruct")
+
 
 def read_arivx_data(file_path):
     # read each line of the file
@@ -32,14 +35,16 @@ def generate_qoe_arvix(output_path='arvix_qoe_trace.json'):
 
         latency = speed[i%len(speed)] if speed[i%len(speed)] < 1 else 0.2
         output_len = random_output_len[i%len(random_output_len)]
+        
+        if data == '':
+            continue
+        input_len = len(tokenizer.tokenize(data))
+        d = {'prompt': data}
         entry = {
-            'ttft': 1, # TODO: add trace for TTFT
+            'ttft': max(1, input_len // 5000),
             'latency': latency,
             'output_len': int(output_len),
         }
-        if data == '':
-            continue
-        d = {'prompt': data}
         entry.update(d)
         entries.append(entry)
         i += 1
