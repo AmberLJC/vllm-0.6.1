@@ -1,10 +1,11 @@
 import argparse
 import json
-import numpy as np
-from transformers import  GPT2Tokenizer
+import numpy as np 
 from generate_qoe_trace import generate_tds_requirements
 
-tokenizer =  GPT2Tokenizer.from_pretrained('gpt2')
+from transformers import AutoTokenizer
+tokenizer = AutoTokenizer.from_pretrained("microsoft/Phi-3-mini-128k-instruct")
+
 LEN=100000
 
 # wget https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/HTML_cleaned_raw_dataset/sg_90k_part1_html_cleaned.json
@@ -45,14 +46,16 @@ def main(args ):
     i = 0
     for data in content:
 
+        if data['prompt'] == '':
+            continue
         latency = speed[i%len(speed)] if speed[i%len(speed)] < 1 else 0.2
+
+        input_len = len(tokenizer.tokenize(data['prompt']))
         entry = {
-            'ttft': 1, # TODO: add trace for TTFT
+            'ttft': max(1, input_len // 5000),
             'latency': latency,
             'output_len': int(data['output_len']),
         }
-        if data['prompt'] == '':
-            continue
         d = {'prompt': data['prompt']}
         entry.update(d)
         entries.append(entry)
