@@ -28,9 +28,9 @@ class AndesScheduler(Scheduler):
         elif self.user_specified_preemption_mode == 'recompute':
             self.user_specified_preemption_mode = PreemptionMode.RECOMPUTE
         
-        self.preempt_tracker = PreemptionTracker(900, 30)
-        self.request_arrival_tracker = PreemptionTracker(900, 30)
-        self.preemption_freq = .5
+        self.preempt_tracker = PreemptionTracker(600, 30)
+        self.request_arrival_tracker = PreemptionTracker(600, 30)
+        self.preemption_freq = scheduler_config.preemption_freq
         self.iter = 0
    
     def add_seq_group(self, seq_group: SequenceGroup) -> None:

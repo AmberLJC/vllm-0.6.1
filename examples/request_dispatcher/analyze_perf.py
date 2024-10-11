@@ -193,7 +193,7 @@ def plot_pdf_per_request(metric_list, file_name ):
 	num_req = 0
 	for k in metric_list: 
 		if k == 'input_len' or k == 'output_len':
-			data = metric_list[k]
+			data = metric_list[k] 
 			plt.hist(data, bins=40, alpha=0.7, label=k) 
 			avg = round( sum(data) / len(data), 2)
 			plt.axvline(avg, color='red', linestyle='--', label=f'{k} Avg: {avg:.5f}')
@@ -318,9 +318,9 @@ def plt_accumulate_token_over_time(log_data, file_name):
 	log_results =	f'>>>>>>>>>> {file_name[:-5]}. ({len(log_data)} requests) <<<<<<<<<< \n' + \
 					f'Avg response {total_tokens/len(qoe_list):.2f} \n' + \
 					f'Avg Qoe: {avg_qoe:.2f}, Perfect Qoe: {perfect_qoe:.2f}. ' + \
-					f'Throughput: {avg_thpt:.2f} req/s. Avg TTFT: {sum(ttft_list) / len(ttft_list) :.2f}.  Pause frequency: {total_pause/len(log_data):.2f}. '
+					f'Throughput: {avg_thpt:.5f} req/s. Avg TTFT: {sum(ttft_list) / len(ttft_list) :.2f}.  Pause frequency: {total_pause/len(log_data):.2f}. '
 					
-	short_results = f'Avg Qoe: {avg_qoe:.2f}, Perfect Qoe: {perfect_qoe:.2f}. Throughput: {avg_thpt:.2f} req/s. TTFT {sum(ttft_list) / len(ttft_list) :.2f} s. Pause frequency: {total_pause/len(log_data) :.2f}. Avg response {total_tokens/len(qoe_list):.2f}. '
+	short_results = f'Avg Qoe: {avg_qoe:.2f}, Perfect Qoe: {perfect_qoe:.2f}. Throughput: {avg_thpt:.5f} req/s. TTFT {sum(ttft_list) / len(ttft_list) :.2f} s. Pause frequency: {total_pause/len(log_data) :.2f}. Avg response {total_tokens/len(qoe_list):.2f}. '
 	with open('results.log', 'a') as f: 
 		f.write(f' >>>>>>> {file_name} ({len(log_data)} requests) <<<<<<<<<\n')
 		f.write(short_results + '\n')
@@ -365,27 +365,22 @@ def plot_cdf_together(log_dict, file_name ):
 			continue
 
 		if 'len' in metric:
-			continue
-
+			continue 
 		plt.figure(figsize=(5.4, 4), constrained_layout=True)
 		xmin = 0
 		xmax = 10e6
 
 		res = []
-		for log in log_dict: # different log file 
-			# data_sorted = np.random.choice(log_dict[log][metric], size=200, replace=True) 
-			# data_sorted = np.sort(data_sorted)
+		for log in log_dict: # different log file  
 			data_sorted = np.sort(log_dict[log][metric])
 
-			# if len(data_sorted) == 0:
-			# 	continue
 			avg_data = sum(data_sorted) / len(data_sorted) 
 			xmin = max(xmin, np.percentile(data_sorted, 0.1))
 			xmax = min(xmax, np.percentile(data_sorted, 99.9))
 			cdf = np.linspace(0, 1, len(data_sorted))
 			date_time =  (log.split('-')[5] + '-' + log.split('-')[-5]  )
 			plt.plot(data_sorted, cdf, label=f'{date_time}, avg: {avg_data:.2f}')
-			res.append(list(data_sorted))
+			res.append(list(data_sorted)) 
 
 		plt.title(f'{file_name}')
 		plt.xlabel(f"{metric}")
@@ -424,9 +419,9 @@ def analyze_one_trace(file_name):
 	return metric_dict
 
 if __name__ == "__main__":
-	dir = './'#  'past/'  #
+	dir = './' # 'past/'
 	file_list = [
-'2024-10-02 15:26-meta-llama-Meta-Llama-3.1-70B-arxiv-gamma*499-0.08(0.2)-day--1-qoe-avg.json'
+'2024-10-09 14:22-meta-llama-Meta-Llama-3.1-70B-sharegpt-multi-gamma*499-1.4(0.1)-day--1-fcfs.json'
 	]
 	if not file_list:
 		file_list = read_all_files()
@@ -438,4 +433,5 @@ if __name__ == "__main__":
 		log_dict[file] = metric_dict 
 
 	plot_cdf_together(log_dict, ''.join(file_list[0].split('-')[3:9]))#
- 
+
+

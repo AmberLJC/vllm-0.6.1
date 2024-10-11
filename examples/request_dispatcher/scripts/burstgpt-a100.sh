@@ -5,18 +5,21 @@ ps aux | grep python | awk '{print $2}' | xargs -r kill -9
 run_model() {
     cd /vllm/examples/request_dispatcher 
     local SCHEDULE=$1  # Accepts scheduling strategy as an argument
-    local model_name="microsoft/Phi-3.5-MoE-instruct" 
+    # local model_name="microsoft/Phi-3.5-MoE-instruct" 
+    local model_name="meta-llama/Meta-Llama-3.1-70B"
     local arrival="burstgpt"
     local time_index=$2
-    echo "--------------- [BurstGPT] Start $SCHEDULE for $model_name ----------" >> results.log
+    local preemption_freq=0.3
+    echo "--------------- [BurstGPT] Start $SCHEDULE ($preemption_freq) for $model_name ----------" >> results.log
 
     # Start serving the model with the input scheduling strategy
     vllm serve "$model_name" \
-        --max-num-seqs 512 \
-        --max-num-batched-tokens 200000 \
+        --max-num-seqs 256 \
+        --max-num-batched-tokens 100000 \
         --scheduling-strategy "$SCHEDULE" \
         --load-format dummy \
         --trust-remote-code \
+        --preemption_freq "$preemption_freq" \
         --tensor-parallel-size 8 &
 
     sleep 70
@@ -28,7 +31,8 @@ run_model() {
         --time-range 'hour' \
         --time-index "$time_index" \
         --scheduling "$SCHEDULE" \
-        --prompt-trace arxiv
+        --prompt-trace sharegpt-multi  
+# ?        --prompt-trace arxiv
 
     # Terminate python processes
     pkill python
@@ -37,10 +41,8 @@ run_model() {
     # id: 496 - 5.6k requests 
     # id: 1020 - 3.7k requests   
     # 374 - 2k requests
+    # 453 - 1.7k requests
 
-# run_model "fcfs" 496 
-# run_model "qoe-avg" 496
+# run_model "fcfs" 453
+run_model "qoe-avg" 453
 
-run_model "fcfs" 374 
-run_model "qoe-avg" 374
- 

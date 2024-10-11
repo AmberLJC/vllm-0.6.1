@@ -164,6 +164,7 @@ class EngineArgs:
 
     # andes
     scheduling_strategy: str = 'fcfs'
+    preemption_freq: float = 0.3
 
     def __post_init__(self):
         if self.tokenizer is None:
@@ -417,6 +418,11 @@ class EngineArgs:
             default=EngineArgs.scheduling_strategy,
             choices=['fcfs', 'qoe-avg', 'qoe-min'],
             help='The scheduling strategy to use for request scheduling.')
+        parser.add_argument(
+            '--preemption-freq',
+            type=float,
+            default=EngineArgs.preemption_freq,
+            help='The frequency of preemption in the scheduling strategy.')
         parser.add_argument(
             '--max-logprobs',
             type=int,
@@ -986,6 +992,7 @@ class EngineArgs:
             send_delta_data=(envs.VLLM_USE_RAY_SPMD_WORKER
                              and parallel_config.use_ray),
             scheduling_strategy = self.scheduling_strategy,
+            preemption_freq = self.preemption_freq,
         )
         lora_config = LoRAConfig(
             max_lora_rank=self.max_lora_rank,

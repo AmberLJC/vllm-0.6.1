@@ -1,7 +1,8 @@
 from typing import Optional, Literal
 from collections import deque
 import time
-import heapq
+from functools import lru_cache
+
 
 class KnapSack():
     def __init__(self, 
@@ -26,7 +27,11 @@ class KnapSack():
     def pick_requests(self, running, waiting, swapped): 
         # Helper functions to get context block for list and individual requests
         def get_context_block_list(requests):
-            return [round((r.get_len() + 1) / self.block_size + 0.5) for r in requests]
+            return [get_context_block(r) for r in requests]
+        
+        @lru_cache(maxsize=100)
+        def get_context_block(request):
+            return round((request.get_len() + 1) / self.block_size + 0.5)
         
         # Convert input lists to mutable lists (if not already)
         running = list(running)
@@ -36,8 +41,8 @@ class KnapSack():
         now = time.monotonic()
 
         # Precompute run and pause values for running, waiting, and swapped
-        run_value_list = [r.get_value(now, self.token_latency, self.delta_t, True) for r in running] 
-        pause_value_list = [r.get_value(now, self.token_latency, self.delta_t, False) for r in waiting + swapped]
+        run_value_list = [r.get_value(now, self.token_latency, self.delta_t, True)/get_context_block(r) for r in running] 
+        pause_value_list = [r.get_value(now, self.token_latency, self.delta_t, False)/get_context_block(r) for r in waiting + swapped]
         maybe_preempt = [(i, r) for i, r in enumerate(running) if run_value_list[i] <= max(pause_value_list, default=1)][:self.max_num_preempt]
 
         # Use set for efficient index checking when keeping non-preempted running items

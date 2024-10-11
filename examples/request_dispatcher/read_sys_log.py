@@ -31,9 +31,6 @@ def extract_system_stats_from_log(file_path: str, start_time: float):
 
     return timestamps, running, swapped, waiting, gpu_cache_usage
 
-
-
-
 def plot_system_stats(timestamps, running, swapped, waiting, gpu_cache_usage, histogram_data):
     # Plotting the data with different scales for GPU Cache Usage and other metrics
 
@@ -55,7 +52,6 @@ def plot_system_stats(timestamps, running, swapped, waiting, gpu_cache_usage, hi
     ax1.set_ylim([0, ymax])  # Scaling for running, swapped, and waiting
     ax1.set_xlim([0, timestamps[-1]])
 
-    # Add a second y-axis for GPU Cache Usage (scale of 0 to 1)
     ax2 = ax1.twinx()
     ax2.plot(timestamps, gpu_cache_usage, label='GPU Cache Usage', color='purple')
     ax2.set_ylabel('GPU Cache Usage (%)', color='purple')
@@ -99,3 +95,5 @@ def list_files_by_creation_time(directory):
     sorted_entries = sorted(entries, key=lambda x: os.path.getctime(x))
 
     return sorted_entries[-1]
+
+
