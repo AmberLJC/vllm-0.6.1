@@ -7,7 +7,7 @@ import numpy as np
 # Initialize empty lists to store timestamps and latency_per_total_token values
  
 from transformers import AutoTokenizer 
-tokenizer = AutoTokenizer.from_pretrained("01-ai/Yi-34B-200K")
+tokenizer = AutoTokenizer.from_pretrained("microsoft/Phi-3-mini-128k-instruct")
 
 from vllm.core.andes_utils.qoe_tracker import QoETracker
 
@@ -74,11 +74,10 @@ def cal_pause_duration(latency_list):
 
 def process_results(log_data, alpha = 3):
 	
-	avg_token_latency_list = []
-	# cv_token_latency_list = []
+	avg_token_latency_list = [] 
 	pause_duration_list = []
 	pause_times_list = []
-	first_token_latency_list = [] 
+	# first_token_latency_list = [] 
 	first_chunk_latency_list = []
 	input_len_list = []
 	output_len_list = []
@@ -122,11 +121,10 @@ def process_results(log_data, alpha = 3):
 			avg_token_latency_list.append(avg_token_latency) 
 			pause_times_list.append(pause_times)
 			
-			
-			if ttft > 0:
-				first_token_latency_list.append(ttft)
-			else:
-				first_token_latency_list.append(find_first_positive(latency))
+			# if ttft > 0:
+			# 	first_token_latency_list.append(ttft)
+			# else:
+			# 	first_token_latency_list.append(find_first_positive(latency))
 
 			pause_duration, pause_times = cal_pause_duration(latency)
 			pause_duration_list.append(pause_duration)
@@ -142,7 +140,7 @@ def process_results(log_data, alpha = 3):
 	# metric_dict['cv_token_latency'] = cv_token_latency_list
 	metric_dict['pause_duration'] = pause_duration_list
 	metric_dict['pause_times'] = pause_times_list
-	metric_dict['first_token_latency'] = first_token_latency_list
+	# metric_dict['first_token_latency'] = first_token_latency_list
 	# metric_dict['error_rate'] = error_rate / len(log_data)
 	metric_dict['input_len'] = input_len_list
 	metric_dict['output_len'] = output_len_list
@@ -197,7 +195,7 @@ def plot_pdf_per_request(metric_list, file_name ):
 			plt.hist(data, bins=40, alpha=0.7, label=k) 
 			avg = round( sum(data) / len(data), 2)
 			plt.axvline(avg, color='red', linestyle='--', label=f'{k} Avg: {avg:.5f}')
-			num_req = len(data)
+			num_req = len(data) 
 
 	plt.xlabel(f'Length - {num_req} request')
 	plt.ylabel('PDF ')
@@ -300,19 +298,22 @@ def plt_accumulate_token_over_time(log_data, file_name):
 			input_len = cal_input_len(entry['input'], tokenizer)
 			total_len_list.append( len(time_list) + input_len ) 
 
-			if  len(time_list) % 10 == 0:
+			if  len(time_list) % 1 == 0:
 				group_time = np.array(time_list) - time_list[0]
 				y = np.arange(1, len(time_list)+1)
 				plt.plot(group_time, y, linestyle='-', markersize=1)  
+			
+			# debug
+			if ttft_list[-1] > 10:
+				print(f'input_len={input_len}, output_len={len(time_list)}, ttft={ttft_list[-1]}, qoe={qoe_list[-1]}, required_qoe={entry["qoe"]}')
 
 	avg_qoe = sum(qoe_list) / len(qoe_list)
-	error = np.std(qoe_list, ddof=1)  
-	qoe_25th = np.percentile(qoe_list, 25)
-	qoe_75th = np.percentile(qoe_list, 75)
+	# error = np.std(qoe_list, ddof=1)  
+	# qoe_25th = np.percentile(qoe_list, 25)
+	# qoe_75th = np.percentile(qoe_list, 75)
 
 	perfect_qoe = sum([1 for q in qoe_list if q >= 0.99]) / len(qoe_list)
-	# print(pause_list)
-	avg_pause = sum(pause_list) / len(pause_list)
+	# avg_pause = sum(pause_list) / len(pause_list)
 	avg_thpt = thpt_tracker.plt_thpt_time(file_name)
 
 	log_results =	f'>>>>>>>>>> {file_name[:-5]}. ({len(log_data)} requests) <<<<<<<<<< \n' + \
@@ -332,16 +333,15 @@ def plt_accumulate_token_over_time(log_data, file_name):
 	
 	plt.xlabel('Time (s)')
 	plt.ylabel('Accumulated Tokens')
-	plt.title(log_results) 
-	# plt.xlim(xmin=xmin)
+	plt.title(log_results)  
 
 	plt.savefig(f'{FIG_DIR}/{file_name}-accumulated-token.png')
 	plt.close()
 	# plot_arrival_histogram(log_data[0], file_name)
-
 	# plot_scatter(total_len_list, qoe_list, file_name)
 	print(log_results)
-
+	# print(f'ttft={ttft_list}')
+	# print(f'qoe={qoe_list}')
 	return {'qoe': qoe_list, 'ttft': ttft_list}
 		 
 def plot_cdf_together(log_dict, file_name ):
@@ -390,9 +390,7 @@ def plot_cdf_together(log_dict, file_name ):
 		plt.ylim((0, 1))
 		plt.legend()
 		plt.savefig(f'{FIG_DIR}/{file_name}-{metric}.png')
-		 
-		
-	print(error_rate)
+		  
 
 def read_all_files(directory = '.'): 
 # List to hold the contents of each text file
@@ -407,7 +405,7 @@ def read_all_files(directory = '.'):
 			file_list.append(file_path)
 			
 	# text_files_contents now contains the contents of all the text files in the directory
-	print(file_list)
+	# print(file_list)
 	return file_list
 
 def analyze_one_trace(file_name):
@@ -421,8 +419,8 @@ def analyze_one_trace(file_name):
 if __name__ == "__main__":
 	dir = './' # 'past/'
 	file_list = [
-'2024-10-09 14:22-meta-llama-Meta-Llama-3.1-70B-sharegpt-multi-gamma*499-1.4(0.1)-day--1-fcfs.json'
-	]
+'2024-10-12 18:43-microsoft-Phi-3.5-MoE-instruct-sharegpt-multi-gamma*249-1.2(10.0)-day--1-fcfs.json',
+'2024-10-12 18:50-microsoft-Phi-3.5-MoE-instruct-sharegpt-multi-gamma*249-1.2(10.0)-day--1-qoe-avg.json'	]
 	if not file_list:
 		file_list = read_all_files()
 

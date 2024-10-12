@@ -18,7 +18,6 @@ DEFAULT_TIMEOUT = aiohttp.ClientTimeout(total=3 * 3600)
 
 np.random.seed(42)
 
- 
 async def single_request(prompt_config: dict,  
                    model_config: dict,
                    url: str = "http://localhost:8000/v1/completions",
@@ -38,7 +37,7 @@ async def single_request(prompt_config: dict,
             "latency": prompt_config['latency'],
             "output_len": min(model_config['max_tokens'], prompt_config['output_len']),
         }
-    }
+    } 
     time_list = [time.monotonic()]
     async with aiohttp.ClientSession(timeout=DEFAULT_TIMEOUT) as session: 
         async with session.post(url, headers=headers, json=config) as response:
@@ -99,8 +98,7 @@ def read_arrival_trace(args: argparse.Namespace
         if args.time_index != -1: 
             the_hour_index = args.time_index
             
-        else: 
-            # the_hour_index = 249 
+        else:  
             the_hour_index = 400 # request rate > 1, up and down
         if time_range == 'day':
             arrival_ts = daily_arrival[the_day_index]
@@ -140,6 +138,9 @@ def read_prompt_trace(args: argparse.Namespace):
         prompt_trace_file = "prompt_trace/short_long_qoe_trace.json"
     elif prompt_trace == 'code':
         prompt_trace_file = "prompt_trace/code_qoe_trace.json"
+    elif prompt_trace == 'prefill':
+        # Just for profiling recompute latency
+        prompt_trace_file = "prompt_trace/test_prefill_trace.json"
     else:
         raise ValueError(f"Unknown prompt trace: {prompt_trace}")
     

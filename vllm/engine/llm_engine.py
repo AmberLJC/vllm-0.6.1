@@ -303,6 +303,7 @@ class LLMEngine:
         self.last_print_time = time.time()
         date = datetime.datetime.fromtimestamp(self.last_print_time) 
         self.log_formatted_date = date.strftime('%Y-%m-%d %H:%M')
+        self.system_logfile=f'{self.VLLM_SYSTEM_LOGGING_FILE}/{self.log_formatted_date}-sys-stats.txt'
 
         # def dump_stats() -> None:
         #     # dump list to a file
@@ -1462,7 +1463,7 @@ class LLMEngine:
                             f'  - Waiting: {num_waiting_sys},  ' \
                             f'  - GPU Cache Usage: {gpu_cache_usage_sys},  ' \
                             f'  - CPU Cache Usage: {cpu_cache_usage_sys}, - Num Preemptions: {num_preemption_iter}.' 
-            with open(f'{self.VLLM_SYSTEM_LOGGING_FILE}/{self.log_formatted_date}-sys-stats.txt', 'a') as f:
+            with open(self.system_logfile, 'a') as f:
                 f.write(f"{log_result}\n")
             self.last_print_time = now
         # return stats

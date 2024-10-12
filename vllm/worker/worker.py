@@ -29,8 +29,29 @@ from vllm.worker.enc_dec_model_runner import EncoderDecoderModelRunner
 from vllm.worker.model_runner import GPUModelRunnerBase, ModelRunner
 from vllm.worker.worker_base import LocalOrDistributedWorkerBase, WorkerInput
 
+
+
 logger = init_logger(__name__)
 # os.environ["VLLM_TORCH_PROFILER_DIR"] = "/vllm/examples/request_dispatcher/profile_trace"
+
+# JUST for profiling
+import time
+from contextlib import contextmanager 
+import datetime
+date = datetime.datetime.fromtimestamp(time.time()) 
+log_formatted_date = date.strftime('%Y-%m-%d %H:%M')
+SYSTEM_LOGDIR='/vllm/examples/request_dispatcher/system_logs'
+SYSTEM_LOGFILE=f'{SYSTEM_LOGDIR}/{log_formatted_date}-sys-stats.txt'
+logger.info(f"Logging system stats to {SYSTEM_LOGFILE}")
+@contextmanager
+def timeit_context(name):
+    start_time = time.time()
+    yield
+    elapsed_time = time.time() - start_time
+    with open(SYSTEM_LOGFILE, 'a') as f: 
+        f.write(f'{name}: {elapsed_time}\n') 
+
+
 
 class Worker(LocalOrDistributedWorkerBase):
     """A worker class that executes (a partition of) the model on a GPU.
@@ -325,15 +346,19 @@ class Worker(LocalOrDistributedWorkerBase):
     @torch.inference_mode()
     def execute_worker(self, worker_input: WorkerInput) -> None:
         virtual_engine = worker_input.virtual_engine
-        # Issue cache operations.
+        # Issue cache operations. 
         if (worker_input.blocks_to_swap_in is not None
                 and worker_input.blocks_to_swap_in.numel() > 0):
-            self.cache_engine[virtual_engine].swap_in(
-                worker_input.blocks_to_swap_in)
+            name = f'swap_in {len(worker_input.blocks_to_swap_in)} blocks'
+            with timeit_context(name):
+                self.cache_engine[virtual_engine].swap_in(
+                    worker_input.blocks_to_swap_in)
         if (worker_input.blocks_to_swap_out is not None
                 and worker_input.blocks_to_swap_out.numel() > 0):
-            self.cache_engine[virtual_engine].swap_out(
-                worker_input.blocks_to_swap_out)
+            name = f'swap_out {len(worker_input.blocks_to_swap_out)} blocks'
+            with timeit_context(name):
+                self.cache_engine[virtual_engine].swap_out(
+                    worker_input.blocks_to_swap_out)
         if (worker_input.blocks_to_copy is not None
                 and worker_input.blocks_to_copy.numel() > 0):
             self.cache_engine[virtual_engine].copy(worker_input.blocks_to_copy)

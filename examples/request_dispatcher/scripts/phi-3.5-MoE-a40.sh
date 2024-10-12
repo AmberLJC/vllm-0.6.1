@@ -38,23 +38,15 @@ run_model() {
 # Total time taken: 1223.5619299411774. 
 
 
-    python request_dispatcher.py --model "$model_name" \
-        --num-requests 250 \
-        --arrival-rate 0.05 \
-        --max-tokens 25000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --burst 0.2 \
-        --prompt-trace arxiv  
-
     # python request_dispatcher.py --model "$model_name" \
     #     --num-requests 250 \
-    #     --arrival-rate 0.08 \
+    #     --arrival-rate 0.05 \
     #     --max-tokens 25000 \
     #     --arrival-trace "$arrival" \
     #     --scheduling "$SCHEDULE" \
     #     --burst 0.2 \
     #     --prompt-trace arxiv  
+ 
 
 # ==================================  sharegpt-multi  ================================ 
   
@@ -83,41 +75,23 @@ run_model() {
 
     # python request_dispatcher.py --model "$model_name" \
     #     --num-requests 250 \
-    #     --arrival-rate 0.8 \
+    #     --arrival-rate 1.2 \
     #     --max-tokens 25000 \
     #     --arrival-trace "$arrival" \
     #     --scheduling "$SCHEDULE" \
     #     --prompt-trace sharegpt-multi \
-    #     --burst 0.2
-
-    # python request_dispatcher.py --model "$model_name" \
-    #     --num-requests 250 \
-    #     --arrival-rate 0.8 \
-    #     --max-tokens 25000 \
-    #     --arrival-trace "$arrival" \
-    #     --scheduling "$SCHEDULE" \
-    #     --prompt-trace sharegpt-multi \
-    #     --burst 0.1 
-
-    # python request_dispatcher.py --model "$model_name" \
-    #     --num-requests 250 \
-    #     --arrival-rate 0.8 \
-    #     --max-tokens 25000 \
-    #     --arrival-trace "$arrival" \
-    #     --scheduling "$SCHEDULE" \
-    #     --prompt-trace sharegpt-multi \
-    #     --burst 0.4
-
+    #     --burst 10
+ 
 # ================================== code ================================ 
 
-    # python request_dispatcher.py --model "$model_name" \
-    #     --num-requests 250 \
-    #     --arrival-rate 3 \
-    #     --max-tokens 10000 \
-    #     --arrival-trace "$arrival" \
-    #     --scheduling "$SCHEDULE" \
-    #     --burst 0.1 \
-    #     --prompt-trace code
+    python request_dispatcher.py --model "$model_name" \
+        --num-requests 250 \
+        --arrival-rate 3 \
+        --max-tokens 10000 \
+        --arrival-trace "$arrival" \
+        --scheduling "$SCHEDULE" \
+        --burst 10 \
+        --prompt-trace code
 
     # Terminate python processes
     pkill python

@@ -164,7 +164,7 @@ class EngineArgs:
 
     # andes
     scheduling_strategy: str = 'fcfs'
-    preemption_freq: float = 0.3
+    preemption_freq: float = 0.1
 
     def __post_init__(self):
         if self.tokenizer is None:

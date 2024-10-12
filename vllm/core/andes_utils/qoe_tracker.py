@@ -53,37 +53,23 @@ class QoETracker(ServiceTracker):
 
         return self.obj_func.get_value(self.token_timestamp, cur_time, token_latency, delta_t, running)
 
-    
-    def get_QoE(self, token_timestamp: tuple = None, buffer_size_list: tuple = None, predict: bool = False) -> float:
+    def get_QoE(self, token_timestamp: list = None, buffer_size_list: tuple = None, predict: bool = False) -> float:
         # TODO: add current time
         if not token_timestamp:
             token_timestamp = self.token_timestamp
         
-        def _add(time_stamp): 
-            self.buffer_size = max(0, self.buffer_size + 1 - (time_stamp - self.last_time) * self.display_rate)
-            self.last_time = time_stamp
-            self.buffer_size_list.append(self.buffer_size)
-
-        if not buffer_size_list:
-            for t in token_timestamp:
-                _add(t)
-            buffer_size_list = self.buffer_size_list
+        s_gap = 0
+        y = list(range(len(token_timestamp)))
+        expected_timeline = [yi * self.qoe_required['latency'] + self.qoe_required['ttft'] for yi in y]
         
-        if len(token_timestamp) == 0:
-            return 1
-    
-        token_timestamp = list(token_timestamp)
-        s_actual = 0
-        complete_time = token_timestamp[0]
-        token_timestamp.insert(0, self.qoe_required['ttft']) 
-        for i in range(2, len(token_timestamp)):
-            delta_t = self.qoe_required['latency'] if buffer_size_list[i] > 0  else token_timestamp[i] - token_timestamp[i-1]
-            s_actual += (2 * i - 1) * delta_t / 2
-            complete_time += delta_t
+        user_ts = token_timestamp[0]
 
-        s_target = (2 * complete_time - len(token_timestamp) * self.qoe_required['latency']) * len(token_timestamp)  / 2
-        return min(1, s_actual / s_target)
-    
+        for i in range( len(token_timestamp)):
+            s_gap += max(user_ts - expected_timeline[i], 0)
+            user_ts = max(token_timestamp[i], user_ts + self.qoe_required['latency'])
+        s_target = (2 * user_ts - 2*self.qoe_required['ttft'] - len(token_timestamp) * self.qoe_required['latency']) * len(token_timestamp)  / 2
+        return min(1, 1- s_gap / s_target)
+
     def analyze_QoE(self, token_timestamp: list) -> float:
         # token_timestamp: start from TTFT
         # for post processing 
@@ -91,7 +77,7 @@ class QoETracker(ServiceTracker):
         for t in token_timestamp:
             self.add(t)
         
-        return self.get_QoE(tuple(token_timestamp))
+        return self.get_QoE(token_timestamp)
     
 class QoEOptimizer():
     def __init__(self, qoe_required) -> None:

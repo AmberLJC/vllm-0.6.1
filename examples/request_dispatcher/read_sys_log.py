@@ -97,3 +97,37 @@ def list_files_by_creation_time(directory):
     return sorted_entries[-1]
 
 
+# Function to extract swap block list and overhead list from the log file
+def extract_swap_stats_from_log(file_path: str):
+    swapin_blocks = []
+    swapin_overheads = []
+    swapout_blocks = []
+    swapout_overheads = []
+
+    # Regular expression to match the swap block and overhead lines
+    pattern_in = re.compile(r'swap_in (\d+) blocks: ([0-9.]+)')
+    pattern_out = re.compile(r'swap_out (\d+) blocks: ([0-9.]+)')
+
+    # Read the file and extract data
+    with open(file_path, 'r') as file:
+        for line in file:
+            match_in = pattern_in.search(line)
+            match_out = pattern_out.search(line)
+            if match_in:
+                swapin_blocks.append(int(match_in.group(1)))
+                swapin_overheads.append(float(match_in.group(2)))
+            elif match_out:
+                swapout_blocks.append(int(match_out.group(1)))
+                swapout_overheads.append(float(match_out.group(2)))
+                    
+    print(f'swapin_blocks={swapin_blocks}')
+    print(f'swapin_overheads={swapin_overheads}')
+    print(f'swapout_blocks={swapout_blocks}')
+    print(f'swapout_overheads={swapout_overheads}')
+    return (swapin_blocks, swapin_overheads), (swapout_blocks, swapout_overheads)
+
+# Example usage
+# log_file_path = 'system_logs/2024-10-12 17:24-sys-stats.txt'
+# (swapin_blocks, swapin_overheads), (swapout_blocks, swapout_overheads) = extract_swap_stats_from_log(log_file_path)
+
+
