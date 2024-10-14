@@ -622,6 +622,9 @@ class Sequence:
         #     return 1
         return self.request_tracker.get_value(now - self.arrival_time, token_latency, delta_t, running)
 
+    def get_slack(self, cur_time: float) -> float:
+        return self.request_tracker.get_slack(cur_time - self.arrival_time)
+
 class SequenceGroupState(msgspec.Struct,
                          omit_defaults=True):  # type: ignore[call-arg]
     """Mutable state tied to a specific sequence group"""
@@ -902,9 +905,8 @@ class SequenceGroup:
     def get_value(self, now: float, token_latency: float, delta_t: float, running: bool = None) -> float:
         return max([seq.get_value(now, token_latency, delta_t, running) for seq in self.get_seqs()])
     
-    @property
-    def get_preemption_times(self) -> int:
-        return sum([seq.preemption_times for seq in self.get_seqs()])
+    def get_slack(self, cur_time: float) -> float:
+        return max([seq.get_slack(cur_time) for seq in self.get_seqs()])
 
 class SequenceGroupMetadataDelta(
         msgspec.Struct,

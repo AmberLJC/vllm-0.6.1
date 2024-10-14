@@ -23,6 +23,7 @@ class KnapSack():
         self.total_available_blocks = total_available_blocks 
         self.token_latency = 0.02
         self.max_num_preempt = 1
+        self.unit_overhead = 3/90000
 
     def pick_requests(self, running, waiting, swapped): 
         # Helper functions to get context block for list and individual requests
@@ -39,6 +40,21 @@ class KnapSack():
         swapped = list(swapped)
 
         now = time.monotonic()
+
+        # ============ online preemption ==============
+        # context_block_list = get_context_block_list(running + waiting + swapped)
+        # num_req = len(context_block_list)
+        # slack_list = [r.get_slack(now) for r in running + waiting + swapped]
+        # slack_list = sorted(slack_list)
+        # index = int(0.05 * num_req)
+        # threshold_value = slack_list[index]
+        # overhead_per_request = self.unit_overhead * sum(context_block_list) * 16 / num_req
+        # self.max_num_preempt = int( threshold_value // overhead_per_request)
+        # # print(f'slack_list: {slack_list}, overhead_per_request: {overhead_per_request}')
+        # # print(f'>>>>>>>>>>>>>>> max_num_preempt: {self.max_num_preempt} <<<<<<<<<<<<<<<<')
+        # if self.max_num_preempt < 1:
+        #     return running + waiting + swapped
+        # ============ online preemption ==============
 
         # Precompute run and pause values for running, waiting, and swapped
         run_value_list = [r.get_value(now, self.token_latency, self.delta_t, True)/get_context_block(r) for r in running] 

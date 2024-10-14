@@ -8,9 +8,6 @@ class ServiceTracker():
     def get_priority(self, time_stamp: float, running: bool) -> float:
         pass
 
-    def preempt_signal(self):
-        pass
-
     def get_QoE(self, token_timestamp: list) -> float:
         pass
 
@@ -36,14 +33,10 @@ class QoETracker(ServiceTracker):
         elif obj_func == 'min':
             self.obj_func = MinQoEOptimizer(qoe_required)
         else:
-            raise ValueError(f"Unsupported objective function: {obj_func}")
-        self.preemption_times = 0
+            raise ValueError(f"Unsupported objective function: {obj_func}") 
             
     def add(self, time_stamp):   
-        self.token_timestamp.append(time_stamp)
- 
-    def preempt_signal(self):
-        self.preemption_times += 1
+        self.token_timestamp.append(time_stamp) 
  
     def get_value(self, cur_time: float, token_latency: float, delta_t: float, running: bool = False) -> float:
         # return 10 if self.preemption_times and running or len(self.token_timestamp) > 500 \
@@ -70,14 +63,13 @@ class QoETracker(ServiceTracker):
         s_target = (2 * user_ts - 2*self.qoe_required['ttft'] - len(token_timestamp) * self.qoe_required['latency']) * len(token_timestamp)  / 2
         return min(1, 1- s_gap / s_target)
 
-    def analyze_QoE(self, token_timestamp: list) -> float:
-        # token_timestamp: start from TTFT
-        # for post processing 
-        # TODO: not sensitive to long TTFT under 
-        for t in token_timestamp:
-            self.add(t)
-        
+    def analyze_QoE(self, token_timestamp: list) -> float: 
         return self.get_QoE(token_timestamp)
+    
+    def get_slack(self, cur_time: float) -> float:
+        response_len = len(self.token_timestamp)  
+        expected_ts = response_len * self.qoe_required['latency'] + self.qoe_required['ttft']
+        return expected_ts - cur_time
     
 class QoEOptimizer():
     def __init__(self, qoe_required) -> None:
@@ -141,4 +133,3 @@ class MinQoEOptimizer(QoEOptimizer):
             qoe_preempt =  1 - ((expected_response_len - length) / expected_response_len) ** 2
 
         return 1 - qoe_preempt
-        

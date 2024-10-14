@@ -16,13 +16,13 @@ def analyze_length(input_file: str):
             output_len = data['output_len']
             input_len_list.append(input_len)
             output_len_list.append(output_len)
-            i += 1
-            if i > 500:
-                break
+            i += 1 
     print(f"Average input length: {np.mean(input_len_list)}")
     print(f"Input length std: {np.std(input_len_list)}")
     print(f"Average output length: {np.mean(output_len_list)}")
     print(f"Output length std: {np.std(output_len_list)}")
+    # print(f'sharegpt_input_len={input_len_list}')
+    # print(f'sharegpt_output_len={output_len_list}')
 
 
 if __name__ == "__main__":

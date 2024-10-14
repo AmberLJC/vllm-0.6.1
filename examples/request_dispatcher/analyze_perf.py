@@ -298,15 +298,11 @@ def plt_accumulate_token_over_time(log_data, file_name):
 			input_len = cal_input_len(entry['input'], tokenizer)
 			total_len_list.append( len(time_list) + input_len ) 
 
-			if  len(time_list) % 1 == 0:
+			if  len(time_list) % 10 == 0:
 				group_time = np.array(time_list) - time_list[0]
 				y = np.arange(1, len(time_list)+1)
 				plt.plot(group_time, y, linestyle='-', markersize=1)  
 			
-			# debug
-			if ttft_list[-1] > 10:
-				print(f'input_len={input_len}, output_len={len(time_list)}, ttft={ttft_list[-1]}, qoe={qoe_list[-1]}, required_qoe={entry["qoe"]}')
-
 	avg_qoe = sum(qoe_list) / len(qoe_list)
 	# error = np.std(qoe_list, ddof=1)  
 	# qoe_25th = np.percentile(qoe_list, 25)
@@ -419,8 +415,10 @@ def analyze_one_trace(file_name):
 if __name__ == "__main__":
 	dir = './' # 'past/'
 	file_list = [
-'2024-10-12 18:43-microsoft-Phi-3.5-MoE-instruct-sharegpt-multi-gamma*249-1.2(10.0)-day--1-fcfs.json',
-'2024-10-12 18:50-microsoft-Phi-3.5-MoE-instruct-sharegpt-multi-gamma*249-1.2(10.0)-day--1-qoe-avg.json'	]
+'2024-10-13 23:16-microsoft-Phi-3-mini-128k-instruct-arxiv-gamma*49-0.5(10)-day--1-fcfs.json',
+'2024-10-13 23:20-microsoft-Phi-3-mini-128k-instruct-arxiv-gamma*49-0.5(10)-day--1-qoe-avg.json',
+'2024-10-13 23:24-microsoft-Phi-3-mini-128k-instruct-arxiv-gamma*49-0.5(10)-day--1-qoe-min.json',
+	]
 	if not file_list:
 		file_list = read_all_files()
 

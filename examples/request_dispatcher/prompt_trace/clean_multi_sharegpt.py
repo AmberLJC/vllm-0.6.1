@@ -6,7 +6,7 @@ from generate_qoe_trace import generate_tds_requirements
 from transformers import AutoTokenizer
 tokenizer = AutoTokenizer.from_pretrained("microsoft/Phi-3-mini-128k-instruct")
 
-LEN=100000
+LEN=50000
 
 # wget https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/HTML_cleaned_raw_dataset/sg_90k_part1_html_cleaned.json
 
@@ -22,10 +22,13 @@ def extract_first_sen(content,
                 tokens = tokenizer.tokenize(item["conversations"][i]['value'])
                 response_length = len(tokens)  
 
-        last_tokens = tokenizer.tokenize(prompt)[-max_prompt_len:]
+        last_tokens = tokenizer.tokenize(prompt)
+        if len(last_tokens) > max_prompt_len:
+            continue
+
         if len(last_tokens) < 1:
             continue
-        prompt = tokenizer.convert_tokens_to_string(last_tokens) 
+        # prompt = tokenizer.convert_tokens_to_string(last_tokens) 
         d = {'id': item['id'], 
             'prompt': prompt, 
             'output_len': response_length}
@@ -37,7 +40,7 @@ def extract_first_sen(content,
     print(f"{len(result)} rows multi rounds ShareGPT dataset created.")
     return result
 
-def main(args ):
+def main(args):
     content = json.load(open(args["in_file"], "r"))
     content = extract_first_sen(content, LEN )
 
@@ -63,7 +66,6 @@ def main(args ):
     with open(args['qoe_out_file'], 'w') as file:
         json.dump(entries, file, indent=4)
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     
@@ -72,3 +74,5 @@ if __name__ == "__main__":
     parser.add_argument("--qoe-out-file", type=str, default =f"sharegpt_multi_qoe_trace.json")
     args = parser.parse_args()
     main(vars(args))
+
+# python clean_multi_sharegpt.py --qoe-out-file sharegpt_multi_50k_qoe_trace.json

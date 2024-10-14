@@ -132,6 +132,7 @@ def read_prompt_trace(args: argparse.Namespace):
         prompt_trace_file = "prompt_trace/sharegpt_qoe_trace.json" 
     elif prompt_trace == 'sharegpt-multi':
         prompt_trace_file = "prompt_trace/sharegpt_multi_qoe_trace.json"
+        # prompt_trace_file = "prompt_trace/sharegpt_multi_50k_qoe_trace.json"
     elif prompt_trace == 'arxiv':
         prompt_trace_file = "prompt_trace/arvix_qoe_trace.json"
     elif prompt_trace == 'short-long':
@@ -192,12 +193,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", type=str, default="http://localhost:8000/v1/completions") 
     parser.add_argument("--stream", action="store_true") 
-    parser.add_argument("--prompt-trace", type=str, default='sharegpt') 
-    parser.add_argument("--arrival-trace", type=str, default='poisson', choices=['burstgpt', 'poisson', 'periodic_poisson', 'gamma']) 
+    parser.add_argument("--prompt-trace", type=str, default='sharegpt-multi') 
+    parser.add_argument("--arrival-trace", type=str, default='gamma', choices=['burstgpt', 'poisson', 'periodic_poisson', 'gamma']) 
     parser.add_argument("--arrival-rate", type=float, default=1.0)
     parser.add_argument("--time-range", type=str, default='day', choices=['day', 'hour'])
     parser.add_argument("--time-index", type=int, default=-1)
-    parser.add_argument("--burst", type=float, default=0.2)
+    parser.add_argument("--burst", type=float, default=10)
     parser.add_argument("--model", type=str, default="facebook/opt-125m")
     parser.add_argument("--scheduling", type=str, default="unknown")
     parser.add_argument("--num-requests", type=int, default=100)
