@@ -1,7 +1,7 @@
 import os
 import json
 from transformers import AutoTokenizer 
-tokenizer = AutoTokenizer.from_pretrained("01-ai/Yi-34B-200K")
+tokenizer = AutoTokenizer.from_pretrained("microsoft/Phi-3-mini-128k-instruct")
 from generate_qoe_trace import generate_tds_requirements
 
 
@@ -28,14 +28,18 @@ def generate_qoe_app(output_path='code_qoe_trace.json'):
     speed = generate_tds_requirements([79.29, 7.03,6.92,3.58,3.17], [0.31, 0.15, 0.19, 0.15, 0.13, 0.16], 500)
     i = 0
     for data in read_all_code_questions():
+
+        if data['prompt'] == '':
+            continue
+        input_len = len(tokenizer.tokenize(data['prompt']))
+        if input_len > 80000:
+            continue
         latency = speed[i%len(speed)] if speed[i%len(speed)] < 1 else 0.2
         entry = {
-            'ttft': 1, # TODO: add trace for TTFT
+            'ttft': max(1, input_len // 5000),
             'latency': latency,
             'output_len': int(data['output_len']),
         }
-        if data['prompt'] == '':
-            continue
         d = {'prompt': data['prompt']}
         entry.update(d)
         entries.append(entry)
