@@ -7,7 +7,7 @@ run_model() {
     local SCHEDULE=$1  # Accepts scheduling strategy as an argument
     local model_name="microsoft/Phi-3.5-MoE-instruct" # "mistralai/Mixtral-8x7B-Instruct-v0.1"
     local arrival="duty"
-    local preemption_freq=1
+    local preemption_freq=0.1
     echo "--------------- Start $SCHEDULE $arrival ($preemption_freq)  for $model_name ----------" >> results.log
 
     # Start serving the model with the input scheduling strategy
@@ -33,6 +33,20 @@ run_model() {
         --arrival-trace "$arrival" \
         --scheduling "$SCHEDULE" \
         --width 0.15 \
+        --prompt-trace arxiv 
+    python request_dispatcher.py --model "$model_name" \
+        --arrival-rate 0.7 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --scheduling "$SCHEDULE" \
+        --width 0.25 \
+        --prompt-trace arxiv 
+    python request_dispatcher.py --model "$model_name" \
+        --arrival-rate 0.7 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --scheduling "$SCHEDULE" \
+        --width 0.05 \
         --prompt-trace arxiv 
     python request_dispatcher.py --model "$model_name" \
         --arrival-rate 0.7 \

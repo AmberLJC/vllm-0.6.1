@@ -411,7 +411,16 @@ def analyze_one_trace(file_name):
 if __name__ == "__main__":
 	dir = './' # 'past/'
 	file_list = [
-'2024-10-15 14:00-meta-llama-Meta-Llama-3.1-70B-code-gamma*249-0.2(0.1)-day--1-fcfs.json'
+
+'2024-10-14 16:23-meta-llama-Meta-Llama-3.1-70B-sharegpt-multi-gamma*499-1.4(0.01)-day--1-fcfs.json',
+'2024-10-15 02:04-meta-llama-Meta-Llama-3.1-70B-sharegpt-multi-gamma*499-1.4(0.05)-day--1-fcfs.json',
+'2024-10-15 01:56-meta-llama-Meta-Llama-3.1-70B-sharegpt-multi-gamma*499-1.4(1.0)-day--1-fcfs.json',
+'2024-10-14 19:49-meta-llama-Meta-Llama-3.1-70B-sharegpt-multi-gamma*499-1.4(10.0)-day--1-qoe-avg.json',
+'2024-10-14 19:57-meta-llama-Meta-Llama-3.1-70B-sharegpt-multi-gamma*499-1.4(0.01)-day--1-qoe-avg.json',
+'2024-10-14 22:35-meta-llama-Meta-Llama-3.1-70B-sharegpt-multi-gamma*499-1.4(0.05)-day--1-qoe-avg.json',
+'2024-10-14 22:25-meta-llama-Meta-Llama-3.1-70B-sharegpt-multi-gamma*499-1.4(1.0)-day--1-qoe-avg.json',
+'2024-10-14 16:16-meta-llama-Meta-Llama-3.1-70B-sharegpt-multi-gamma*499-1.4(10.0)-day--1-fcfs.json',
+
 	]
 	if not file_list:
 		file_list = read_all_files()

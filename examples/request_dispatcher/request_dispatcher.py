@@ -76,18 +76,21 @@ def gamma_arrival_times(shape, scale, num_arrivals):
     
     return np.diff(arrival_times) 
 
-def generate_duty_cycle_poisson_arrival(arrival_rate, height, width, duration=1800, num_cycle=1):
+def generate_custom_poisson_arrival(arrival_rate, height, width, duration=1800, num_cycle=1):
   peak_rate = arrival_rate * height
   non_peak_rate = (arrival_rate - peak_rate * width) / (1-width)
   print(f'peak rate: {peak_rate}, non-peak rate: {non_peak_rate}')
   num_peak_requests = int(peak_rate * duration * width)
-  num_non_peak_requests = int(non_peak_rate * duration * (1-width))
+  num_non_peak_requests = max(0, int(non_peak_rate * duration * (1-width)))
   print(f'# requests in peak: {num_peak_requests}, non-peak: {num_non_peak_requests}')
   interval_list = np.array([])
   for c in range(num_cycle):
     peak_interval = np.random.exponential(1/peak_rate, num_peak_requests)
-    non_peak_interval = np.random.exponential(1/non_peak_rate, num_non_peak_requests)
-    interval_list = np.concatenate((interval_list, non_peak_interval, peak_interval))
+    if num_non_peak_requests > 0:
+      non_peak_interval = np.random.exponential(1/non_peak_rate, num_non_peak_requests)
+    else:
+      non_peak_interval = np.array([])
+    interval_list = np.concatenate((interval_list, peak_interval,non_peak_interval))
   return interval_list
 
 
