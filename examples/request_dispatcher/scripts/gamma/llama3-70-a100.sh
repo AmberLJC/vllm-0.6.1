@@ -14,56 +14,48 @@ run_model() {
         --max-num-batched-tokens 100000 \
         --scheduling-strategy "$SCHEDULE" \
         --load-format dummy \
-        --preemption_freq 0.05 \
+        --preemption_freq 0.1 \
         --tensor-parallel-size 8 &
 
     sleep 80
     
 # ================================================================   arxiv  ======================================================================== 
- 
-    python request_dispatcher.py --model "$model_name" \
-        --num-requests 250 \
-        --arrival-rate 0.1 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --burst 0.1 \
-        --prompt-trace arxiv  
+  
 
-    python request_dispatcher.py --model "$model_name" \
-        --num-requests 250 \
-        --arrival-rate 0.1 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --burst 0.01 \
-        --prompt-trace arxiv  
+    # python request_dispatcher.py --model "$model_name" \
+    #     --num-requests 100 \
+    #     --arrival-rate 0.15 \
+    #     --max-tokens 30000 \
+    #     --arrival-trace "$arrival" \
+    #     --scheduling "$SCHEDULE" \
+    #     --burst 0.1 \
+    #     --prompt-trace arxiv  
+ 
 
 # ==========================================================================  sharegpt-multi  ================================================================================== 
 
-    python request_dispatcher.py --model "$model_name" \
-        --num-requests 500 \
-        --arrival-rate 1.4 \
-        --max-tokens 50000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --burst 10 \
-        --prompt-trace sharegpt-multi   
-
-    python request_dispatcher.py --model "$model_name" \
-        --num-requests 500 \
-        --arrival-rate 1.4 \
-        --max-tokens 50000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --burst 0.01 \
-        --prompt-trace sharegpt-multi     
+    # python request_dispatcher.py --model "$model_name" \
+    #     --num-requests 500 \
+    #     --arrival-rate 1.4 \
+    #     --max-tokens 50000 \
+    #     --arrival-trace "$arrival" \
+    #     --scheduling "$SCHEDULE" \
+    #     --burst 1 \
+    #     --prompt-trace sharegpt-multi   
+    # python request_dispatcher.py --model "$model_name" \
+    #     --num-requests 500 \
+    #     --arrival-rate 1.4 \
+    #     --max-tokens 50000 \
+    #     --arrival-trace "$arrival" \
+    #     --scheduling "$SCHEDULE" \
+    #     --burst 0.05 \
+    #     --prompt-trace sharegpt-multi   
 
 # ========================================================================== code ============================================================== 
 
     python request_dispatcher.py --model "$model_name" \
-        --num-requests 250 \
-        --arrival-rate 0.2 \
+        --num-requests 500 \
+        --arrival-rate 0.15 \
         --max-tokens 30000 \
         --arrival-trace "$arrival" \
         --scheduling "$SCHEDULE" \
@@ -79,7 +71,7 @@ run_model() {
  
 
 # run_model "fcfs"
-# sleep 10
+# # sleep 10
 run_model "qoe-avg"
 
 

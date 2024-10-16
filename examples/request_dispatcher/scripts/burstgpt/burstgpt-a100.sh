@@ -24,7 +24,6 @@ run_model() {
 
     sleep 70
     
-# ================================== arxiv ================================ 
     python request_dispatcher.py --model "$model_name" \
         --max-tokens 30000 \
         --arrival-trace "$arrival" \
@@ -32,7 +31,6 @@ run_model() {
         --time-index "$time_index" \
         --scheduling "$SCHEDULE" \
         --prompt-trace sharegpt-multi  
-# ?        --prompt-trace arxiv
 
     # Terminate python processes
     pkill python
@@ -42,7 +40,16 @@ run_model() {
     # id: 1020 - 3.7k requests   
     # 374 - 2k requests
     # 453 - 1.7k requests
+    # 1387 - 3.2k requests
+    # 849 - 1.5k requests
 
 # run_model "fcfs" 453
-run_model "qoe-avg" 453
+# run_model "qoe-avg" 453
+
+# run_model "fcfs" 1387
+# run_model "qoe-avg" 1387
+
+run_model "fcfs" 849
+run_model "qoe-avg" 849
+
 

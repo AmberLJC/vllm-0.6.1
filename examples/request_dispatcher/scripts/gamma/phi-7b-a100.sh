@@ -24,14 +24,14 @@ run_model() {
     
 # ==================================   arxiv  ================================  
 
-    python request_dispatcher.py --model "$model_name" \
-        --num-requests 500 \
-        --arrival-rate 0.3 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --burst 0.075 \
-        --prompt-trace arxiv   
+    # python request_dispatcher.py --model "$model_name" \
+    #     --num-requests 500 \
+    #     --arrival-rate 0.3 \
+    #     --max-tokens 30000 \
+    #     --arrival-trace "$arrival" \
+    #     --scheduling "$SCHEDULE" \
+    #     --burst 0.075 \
+    #     --prompt-trace arxiv   
         
 # ==================================  sharegpt-multi  ================================ 
   
@@ -41,19 +41,28 @@ run_model() {
         --max-tokens 30000 \
         --arrival-trace "$arrival" \
         --scheduling "$SCHEDULE" \
-        --burst 0.05 \
+        --burst 10 \
+        --prompt-trace sharegpt-multi    
+        
+    python request_dispatcher.py --model "$model_name" \
+        --num-requests 1000 \
+        --arrival-rate 3 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --scheduling "$SCHEDULE" \
+        --burst 0.005 \
         --prompt-trace sharegpt-multi    
         
 # ================================== code ================================ 
 
-    python request_dispatcher.py --model "$model_name" \
-        --num-requests 1000 \
-        --arrival-rate 0.6 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --burst 0.003 \
-        --scheduling "$SCHEDULE" \
-        --prompt-trace code 
+    # python request_dispatcher.py --model "$model_name" \
+    #     --num-requests 1000 \
+    #     --arrival-rate 0.6 \
+    #     --max-tokens 30000 \
+    #     --arrival-trace "$arrival" \
+    #     --burst 0.003 \
+    #     --scheduling "$SCHEDULE" \
+    #     --prompt-trace code 
 
     # Terminate python processes
     pkill python
@@ -64,6 +73,6 @@ run_model() {
 
 
 run_model "fcfs"
-sleep 10
-run_model "qoe-avg"
+# sleep 10
+# run_model "qoe-avg"
 

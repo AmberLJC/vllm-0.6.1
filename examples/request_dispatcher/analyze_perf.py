@@ -121,11 +121,6 @@ def process_results(log_data, alpha = 3):
 			avg_token_latency_list.append(avg_token_latency) 
 			pause_times_list.append(pause_times)
 			
-			# if ttft > 0:
-			# 	first_token_latency_list.append(ttft)
-			# else:
-			# 	first_token_latency_list.append(find_first_positive(latency))
-
 			pause_duration, pause_times = cal_pause_duration(latency)
 			pause_duration_list.append(pause_duration)
 			# timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f")
@@ -147,10 +142,10 @@ def process_results(log_data, alpha = 3):
 	metric_dict['total_latency'] = total_latency_list
 	metric_dict['avg_thpt'] = thpt_list
 	metric_dict['first_chunk_latency'] = first_chunk_latency_list
-	short_results = f'avg thpt: {np.mean(thpt_list) :2f}'
+	# short_results = f'avg thpt: {np.mean(thpt_list) :2f}'
 	# with open('thpt.log', 'a') as f: 
 	# 	f.write(short_results + '\n')
-
+ 
 	return metric_dict
  
 def plot_over_hour(hours, averages):
@@ -196,6 +191,7 @@ def plot_pdf_per_request(metric_list, file_name ):
 			avg = round( sum(data) / len(data), 2)
 			plt.axvline(avg, color='red', linestyle='--', label=f'{k} Avg: {avg:.5f}')
 			num_req = len(data) 
+			
 
 	plt.xlabel(f'Length - {num_req} request')
 	plt.ylabel('PDF ')
@@ -322,7 +318,7 @@ def plt_accumulate_token_over_time(log_data, file_name):
 		f.write(f' >>>>>>> {file_name} ({len(log_data)} requests) <<<<<<<<<\n')
 		f.write(short_results + '\n')
 
-	x = np.linspace(0, group_time[-1], 100)
+	x = np.linspace(0, 200, 100)
 	xmin = 0
 	plt.plot(x + xmin, 5.1 * (x - 1), linestyle='--', markersize=2)
 	# plt.plot(x, 3.78 * (x - 1), linestyle='--', markersize=2)
@@ -415,9 +411,7 @@ def analyze_one_trace(file_name):
 if __name__ == "__main__":
 	dir = './' # 'past/'
 	file_list = [
-'2024-10-13 23:16-microsoft-Phi-3-mini-128k-instruct-arxiv-gamma*49-0.5(10)-day--1-fcfs.json',
-'2024-10-13 23:20-microsoft-Phi-3-mini-128k-instruct-arxiv-gamma*49-0.5(10)-day--1-qoe-avg.json',
-'2024-10-13 23:24-microsoft-Phi-3-mini-128k-instruct-arxiv-gamma*49-0.5(10)-day--1-qoe-min.json',
+'2024-10-15 14:00-meta-llama-Meta-Llama-3.1-70B-code-gamma*249-0.2(0.1)-day--1-fcfs.json'
 	]
 	if not file_list:
 		file_list = read_all_files()

@@ -15,9 +15,9 @@ run_model() {
         --max-num-batched-tokens 300000 \
         --scheduling-strategy "$SCHEDULE" \
         --load-format dummy \
-        --preemption_freq 0.1 \
+        --preemption_freq 1 \
         --trust-remote-code \
-        --tensor-parallel-size 4 &
+        --tensor-parallel-size 8 &
 
     sleep 80 
 

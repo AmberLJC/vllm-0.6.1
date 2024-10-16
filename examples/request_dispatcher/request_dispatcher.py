@@ -76,6 +76,20 @@ def gamma_arrival_times(shape, scale, num_arrivals):
     
     return np.diff(arrival_times) 
 
+def generate_duty_cycle_poisson_arrival(arrival_rate, height, width, duration=1800, num_cycle=1):
+  peak_rate = arrival_rate * height
+  non_peak_rate = (arrival_rate - peak_rate * width) / (1-width)
+  print(f'peak rate: {peak_rate}, non-peak rate: {non_peak_rate}')
+  num_peak_requests = int(peak_rate * duration * width)
+  num_non_peak_requests = int(non_peak_rate * duration * (1-width))
+  print(f'# requests in peak: {num_peak_requests}, non-peak: {num_non_peak_requests}')
+  interval_list = np.array([])
+  for c in range(num_cycle):
+    peak_interval = np.random.exponential(1/peak_rate, num_peak_requests)
+    non_peak_interval = np.random.exponential(1/non_peak_rate, num_non_peak_requests)
+    interval_list = np.concatenate((interval_list, non_peak_interval, peak_interval))
+  return interval_list
+
 
 def read_arrival_trace(args: argparse.Namespace
                        ) -> List[float]:
@@ -123,6 +137,8 @@ def read_arrival_trace(args: argparse.Namespace
         shape = args.burst   # burstness: smaller value means more bursty
         scale = arrival_inv / shape  # avg arrival interval 
         return gamma_arrival_times(shape, scale, args.num_requests )
+    elif arrival_trace == 'duty':
+        return generate_duty_cycle_poisson_arrival(args.arrival_rate, args.height, args.width, args.duration)
     else:
         raise ValueError(f"Unknown arrival trace: {arrival_trace}")
     
@@ -159,7 +175,14 @@ async def main(args):
     prompt_trace = read_prompt_trace(args)
     num_prompts = len(prompt_trace)
     arrival_intervals = read_arrival_trace(args)
-    result_file = f'{formatted_date}-{model_file}-{args.prompt_trace}-{args.arrival_trace}*{len(arrival_intervals)}-{args.arrival_rate}({args.burst})-{args.time_range}-{args.time_index}-{args.scheduling}.json'
+    if args.arrival_trace == 'burstgpt':
+        result_file = f'{formatted_date}-{model_file}-{args.prompt_trace}-{args.arrival_trace}*{len(arrival_intervals)}-{args.time_range}-{args.time_index}-{args.scheduling}.json'
+    elif args.arrival_trace == 'gamma':
+        result_file = f'{formatted_date}-{model_file}-{args.prompt_trace}-{args.arrival_trace}*{len(arrival_intervals)}-{args.arrival_rate}({args.burst})-{args.scheduling}.json'
+    elif args.arrival_trace == 'duty':
+        result_file = f'{formatted_date}-{model_file}-{args.prompt_trace}-{args.arrival_trace}*{len(arrival_intervals)}-{args.arrival_rate}(h={args.height},w={args.width})-{args.scheduling}.json'
+    else:
+        result_file = f'{formatted_date}-{model_file}-{args.prompt_trace}-{args.arrival_trace}*{len(arrival_intervals)}-{args.arrival_rate}-{args.scheduling}.json'
     print(f'>>>>>Start {result_file}<<<<<<')
     model_config = {
         "model": args.model,
@@ -194,13 +217,20 @@ if __name__ == "__main__":
     parser.add_argument("--url", type=str, default="http://localhost:8000/v1/completions") 
     parser.add_argument("--stream", action="store_true") 
     parser.add_argument("--prompt-trace", type=str, default='sharegpt-multi') 
-    parser.add_argument("--arrival-trace", type=str, default='gamma', choices=['burstgpt', 'poisson', 'periodic_poisson', 'gamma']) 
+    parser.add_argument("--arrival-trace", type=str, default='gamma', choices=['burstgpt', 'poisson', 'periodic_poisson', 'gamma', 'duty']) 
     parser.add_argument("--arrival-rate", type=float, default=1.0)
+    # for burstGPT
     parser.add_argument("--time-range", type=str, default='day', choices=['day', 'hour'])
     parser.add_argument("--time-index", type=int, default=-1)
+    # for Gamma
     parser.add_argument("--burst", type=float, default=10)
+    # for duty cycle, each duty cycle is 20 minutes
+    parser.add_argument("--height", type=float, default=2, help="height of the bursty period compared to avg.")
+    parser.add_argument("--width", type=float, default=0.35, help="duration ratio of the bursty period.")
+    parser.add_argument("--duration", type=int, default=1800, help="duration of the trace.")
+    # for the serving system
     parser.add_argument("--model", type=str, default="facebook/opt-125m")
-    parser.add_argument("--scheduling", type=str, default="unknown")
+    parser.add_argument("--scheduling", type=str, default="unknown", help="Notes for the server")
     parser.add_argument("--num-requests", type=int, default=100)
     parser.add_argument("--max-tokens", type=int, default=1024)
     args = parser.parse_args()

@@ -119,15 +119,11 @@ def extract_swap_stats_from_log(file_path: str):
             elif match_out:
                 swapout_blocks.append(int(match_out.group(1)))
                 swapout_overheads.append(float(match_out.group(2)))
-                    
-    print(f'swapin_blocks={swapin_blocks}')
-    print(f'swapin_overheads={swapin_overheads}')
-    print(f'swapout_blocks={swapout_blocks}')
-    print(f'swapout_overheads={swapout_overheads}')
+                
     return (swapin_blocks, swapin_overheads), (swapout_blocks, swapout_overheads)
 
-# Example usage
-# log_file_path = 'system_logs/2024-10-12 17:24-sys-stats.txt'
+# # Example usage
+# log_file_path = 'system_logs/2024-10-14 14:49-sys-stats.txt'
 # (swapin_blocks, swapin_overheads), (swapout_blocks, swapout_overheads) = extract_swap_stats_from_log(log_file_path)
 
 

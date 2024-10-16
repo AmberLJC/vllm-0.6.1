@@ -42,19 +42,19 @@ class KnapSack():
         now = time.monotonic()
 
         # ============ online preemption ==============
-        # context_block_list = get_context_block_list(running + waiting + swapped)
-        # num_req = len(context_block_list)
-        # slack_list = [r.get_slack(now) for r in running + waiting + swapped]
-        # slack_list = sorted(slack_list)
-        # index = int(0.05 * num_req)
-        # threshold_value = slack_list[index]
-        # overhead_per_request = self.unit_overhead * sum(context_block_list) * 16 / num_req
-        # self.max_num_preempt = int( threshold_value // overhead_per_request)
-        # # print(f'slack_list: {slack_list}, overhead_per_request: {overhead_per_request}')
-        # # print(f'>>>>>>>>>>>>>>> max_num_preempt: {self.max_num_preempt} <<<<<<<<<<<<<<<<')
-        # if self.max_num_preempt < 1:
-        #     return running + waiting + swapped
-        # ============ online preemption ==============
+        context_block_list = get_context_block_list(running + waiting + swapped) 
+        num_req = len(context_block_list)
+        slack_list = [r.get_slack(now) for r in running + waiting + swapped]
+        slack_list = sorted(slack_list)
+        index = int(0.05 * num_req)
+        threshold_value = slack_list[index]
+        overhead_per_request = self.unit_overhead * sum(context_block_list) * 16 / num_req
+        self.max_num_preempt = int( threshold_value // overhead_per_request) 
+        # print(f'overhead_per_request: {overhead_per_request}')
+        # print(f'max_num_preempt: {self.max_num_preempt}')
+        if self.max_num_preempt < 1:
+            return running + waiting + swapped
+        # ============ online preemption ============== 
 
         # Precompute run and pause values for running, waiting, and swapped
         run_value_list = [r.get_value(now, self.token_latency, self.delta_t, True)/get_context_block(r) for r in running] 
@@ -64,21 +64,13 @@ class KnapSack():
         # Use set for efficient index checking when keeping non-preempted running items
         preempt_indices = {i for i, _ in maybe_preempt}
         keep_running = [r for i, r in enumerate(running) if i not in preempt_indices]
-
-        # Update running with preempted items only
         running = [r for _, r in maybe_preempt]
-
-        # Calculate available blocks after keeping some running requests
+ 
         available_blocks = self.total_available_blocks - sum(get_context_block_list(keep_running))
-
-        # Prepare context blocks and values for the knapsack problem
         context_block_list = get_context_block_list(running + waiting + swapped)
-        value_list = [run_value_list[i] for i in preempt_indices] + pause_value_list
-
-        # Solve the knapsack problem to get the best plan
+        value_list = [run_value_list[i] for i in preempt_indices] + pause_value_list 
         _, best_plan = self.solver_func(available_blocks, context_block_list, value_list)
-
-        # Return the best plan along with items that were kept running
+        # print(f'best_plan: {best_plan}={result}: available_blocks: {available_blocks}; context_block_list: {context_block_list}; value_list: {value_list}')
         return [(running + waiting + swapped)[i] for i in best_plan] + keep_running
 
         # context_block_list = get_context_block_list(running + waiting + swapped)
@@ -118,14 +110,12 @@ class KnapSack():
         Returns:
         tuple: Total value of the picked items and the list of indices of the picked items.
         """
-
         # Calculate value-to-weight ratio and sort items by this ratio in descending order
         items = [(v / w, w, v, i) for i, (v, w) in enumerate(zip(values, weights))]
         items.sort(reverse=True, key=lambda x: x[0]) 
 
         current_weight = current_value = 0
-        picked_items = []
-
+        picked_items = [] 
         for _, weight, value, index in items:
             if current_weight + weight <= capacity:  
                 current_weight += weight
