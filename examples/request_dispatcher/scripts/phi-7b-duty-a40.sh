@@ -6,7 +6,7 @@ run_model() {
     cd /vllm/examples/request_dispatcher 
     local SCHEDULE=$1  # Accepts scheduling strategy as an argument
     local model_name="microsoft/Phi-3-mini-128k-instruct"  
-    local arrival="gamma"
+    local arrival="duty"
     local preemption_freq=$2
     echo "--------------- Start $SCHEDULE for $model_name ----------" >> results.log
 
@@ -24,42 +24,24 @@ run_model() {
     
     sleep 66
       
-    # python request_dispatcher.py --model "$model_name" \
-    #     --num-requests 1000 \
-    #     --arrival-rate 2 \
-    #     --max-tokens 30000 \
-    #     --arrival-trace "$arrival" \
-    #     --scheduling "$SCHEDULE"-"$preemption_freq" \
-    #     --burst 1 \
-    #     --prompt-trace sharegpt-multi    
-    # python request_dispatcher.py --model "$model_name" \
-    #     --num-requests 1000 \
-    #     --arrival-rate 2 \
-    #     --max-tokens 30000 \
-    #     --arrival-trace "$arrival" \
-    #     --scheduling "$SCHEDULE"-"$preemption_freq" \
-    #     --burst 0.1 \
-    #     --prompt-trace sharegpt-multi     
-    # python request_dispatcher.py --model "$model_name" \
-    #     --num-requests 1000 \
-    #     --arrival-rate  2\
-    #     --max-tokens 30000 \
-    #     --arrival-trace "$arrival" \
-    #     --scheduling "$SCHEDULE"-"$preemption_freq" \
-    #     --burst 0.01 \
-    #     --prompt-trace sharegpt-multi     
-        
+    python request_dispatcher.py --model "$model_name" \
+        --arrival-rate 2 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --duration 300 \
+        --scheduling "$SCHEDULE"-"$preemption_freq" \
+        --prompt-trace sharegpt-multi     
         
 # ================================== code ================================ 
 
-    python request_dispatcher.py --model "$model_name" \
-        --num-requests 750 \
-        --arrival-rate 0.8 \
-        --max-tokens 10000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --burst 10 \
-        --prompt-trace code
+    # python request_dispatcher.py --model "$model_name" \
+    #     --num-requests 750 \
+    #     --arrival-rate 0.8 \
+    #     --max-tokens 10000 \
+    #     --arrival-trace "$arrival" \
+    #     --scheduling "$SCHEDULE" \
+    #     --burst 10 \
+    #     --prompt-trace code
 
     # Terminate python processes
     pkill python

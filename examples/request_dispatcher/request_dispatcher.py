@@ -73,10 +73,9 @@ def gamma_arrival_times(shape, scale, num_arrivals):
     # Generate inter-arrival times from a Gamma distribution
     inter_arrival_times = np.random.gamma(shape, scale, num_arrivals)
     arrival_times = np.cumsum(inter_arrival_times)
-    
     return np.diff(arrival_times) 
 
-def generate_custom_poisson_arrival(arrival_rate, height, width, duration=1800, num_cycle=1):
+def generate_duty_cycle_poisson_arrival(arrival_rate, height, width, duration=1800, num_cycle=1):
   peak_rate = arrival_rate * height
   non_peak_rate = (arrival_rate - peak_rate * width) / (1-width)
   print(f'peak rate: {peak_rate}, non-peak rate: {non_peak_rate}')
@@ -90,7 +89,7 @@ def generate_custom_poisson_arrival(arrival_rate, height, width, duration=1800, 
       non_peak_interval = np.random.exponential(1/non_peak_rate, num_non_peak_requests)
     else:
       non_peak_interval = np.array([])
-    interval_list = np.concatenate((interval_list, peak_interval,non_peak_interval))
+    interval_list = np.concatenate((interval_list, peak_interval, non_peak_interval))
   return interval_list
 
 

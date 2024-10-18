@@ -68,12 +68,21 @@ run_model() {
 
     python request_dispatcher.py --model "$model_name" \
         --num-requests 250 \
-        --arrival-rate 2 \
+        --arrival-rate 1 \
         --max-tokens 25000 \
         --arrival-trace "$arrival" \
         --scheduling "$SCHEDULE" \
         --prompt-trace sharegpt-multi \
         --burst 0.1
+ 
+    python request_dispatcher.py --model "$model_name" \
+        --num-requests 250 \
+        --arrival-rate 1 \
+        --max-tokens 25000 \
+        --arrival-trace "$arrival" \
+        --scheduling "$SCHEDULE" \
+        --prompt-trace sharegpt-multi \
+        --burst 10
  
  
 # ================================== code ================================ 

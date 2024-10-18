@@ -8,7 +8,7 @@ run_model() {
     local model_name="microsoft/Phi-3.5-MoE-instruct" # "mistralai/Mixtral-8x7B-Instruct-v0.1"
     local arrival="duty"
     local preemption_freq=0.1
-    echo "--------------- Start $SCHEDULE $arrival ($preemption_freq)  for $model_name ----------" >> results.log
+    echo "--------------- [Duty Cycle] Start $SCHEDULE $arrival ($preemption_freq)  for $model_name ----------" >> results.log
 
     # Start serving the model with the input scheduling strategy
     vllm serve "$model_name" \
@@ -28,83 +28,75 @@ run_model() {
 # ==================================   arxiv  ================================  
 
     python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 0.7 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --width 0.15 \
-        --prompt-trace arxiv 
-    python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 0.7 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --width 0.25 \
-        --prompt-trace arxiv 
-    python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 0.7 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --width 0.05 \
-        --prompt-trace arxiv 
-    python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 0.7 \
         --max-tokens 30000 \
         --arrival-trace "$arrival" \
         --scheduling "$SCHEDULE" \
         --width 0.35 \
-        --prompt-trace arxiv 
+        --height 2 \
+        --prompt-trace arxiv  
+    # python request_dispatcher.py --model "$model_name" \
+    #     --arrival-rate 0.6 \
+    #     --max-tokens 30000 \
+    #     --arrival-trace "$arrival" \
+    #     --scheduling "$SCHEDULE" \
+    #     --width 0.15 \
+    #     --height 2 \
+    #     --prompt-trace arxiv  
+    # python request_dispatcher.py --model "$model_name" \
+    #     --arrival-rate 0.6 \
+    #     --max-tokens 30000 \
+    #     --arrival-trace "$arrival" \
+    #     --scheduling "$SCHEDULE" \
+    #     --width 0.35 \
+    #     --height 1.2 \
+    #     --prompt-trace arxiv  
+    # python request_dispatcher.py --model "$model_name" \
+    #     --arrival-rate 0.6 \
+    #     --max-tokens 30000 \
+    #     --arrival-trace "$arrival" \
+    #     --scheduling "$SCHEDULE" \
+    #     --width 0.35 \
+    #     --height 2.8 \
+    #     --prompt-trace arxiv  
 
 # ==================================  sharegpt-multi  ================================ 
  
-        # python request_dispatcher.py --model "$model_name" \
-        # --num-requests 2500 \
-        # --arrival-rate 3.5 \
-        # --max-tokens 30000 \
-        # --arrival-trace "$arrival" \
-        # --scheduling "$SCHEDULE" \
-        # --burst 0.01 \
-        # --prompt-trace sharegpt-multi      
- 
-        #  python request_dispatcher.py --model "$model_name" \
-        # --num-requests 2500 \
-        # --arrival-rate 3.5 \
-        # --max-tokens 30000 \
-        # --arrival-trace "$arrival" \
-        # --scheduling "$SCHEDULE" \
-        # --burst 0.02 \
-        # --prompt-trace sharegpt-multi    
-
+        python request_dispatcher.py --model "$model_name" \
+        --arrival-rate 3 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --scheduling "$SCHEDULE" \
+        --width 0.35 \
+        --height 2 \
+        --prompt-trace sharegpt-multi       
  
  
 # ==================================  code  ================================ 
 
-    # python request_dispatcher.py --model "$model_name" \
-    #     --num-requests 1000 \
-    #     --arrival-rate 1 \
-    #     --max-tokens 30000 \
-    #     --arrival-trace "$arrival" \
-    #     --burst 10 \
-    #     --scheduling "$SCHEDULE" \
-    #     --prompt-trace code
-
-    # python request_dispatcher.py --model "$model_name" \
-    #     --num-requests 2000 \
-    #     --arrival-rate 0.8 \
-    #     --max-tokens 30000 \
-    #     --arrival-trace "$arrival" \
-    #     --burst 10 \
-    #     --scheduling "$SCHEDULE" \
-    #     --prompt-trace code
+    python request_dispatcher.py --model "$model_name" \
+        --arrival-rate 1 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --width 0.35 \
+        --height 2 \
+        --scheduling "$SCHEDULE" \
+        --prompt-trace code
+ 
 
     # Terminate python processes
     ps aux | grep python | awk '{print $2}' | xargs -r kill -9
     cd /vllm/examples/request_dispatcher/scripts    
-    python send.py "Done running $SCHEDULE for $model_name"
+    python send.py "[Duty Cycle] Done running $SCHEDULE for $model_name"
 } 
 
 
 run_model "fcfs"
 # sleep 5
 run_model "qoe-avg"
+
+
+
+
+
+
+python send.py "[Duty Cycle] Done running exps for $model_name"
