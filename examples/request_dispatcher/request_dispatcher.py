@@ -229,7 +229,7 @@ if __name__ == "__main__":
     # for duty cycle, each duty cycle is 20 minutes
     parser.add_argument("--height", type=float, default=2, help="height of the bursty period compared to avg.")
     parser.add_argument("--width", type=float, default=0.35, help="duration ratio of the bursty period.")
-    parser.add_argument("--duration", type=int, default=1800, help="duration of the trace.")
+    parser.add_argument("--duration", type=int, default=1200, help="duration of the trace.")
     # for the serving system
     parser.add_argument("--model", type=str, default="facebook/opt-125m")
     parser.add_argument("--scheduling", type=str, default="unknown", help="Notes for the server")

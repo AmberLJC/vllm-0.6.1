@@ -7,7 +7,7 @@ run_model() {
     local SCHEDULE=$1  # Accepts scheduling strategy as an argument
     local model_name="microsoft/Phi-3.5-MoE-instruct" # "mistralai/Mixtral-8x7B-Instruct-v0.1"
     local arrival="duty"
-    local preemption_freq=0.1
+    local preemption_freq=0.3
     echo "--------------- [Duty Cycle] Start $SCHEDULE $arrival ($preemption_freq)  for $model_name ----------" >> results.log
 
     # Start serving the model with the input scheduling strategy
@@ -23,65 +23,57 @@ run_model() {
         # --preemption-mode swap \
         # --swap-space 20 \
     
-    sleep 88
+    sleep 90
+    python scripts/send.py 'health'
+# # # ==================================   arxiv  ================================  
 
-# ==================================   arxiv  ================================  
-
-    python request_dispatcher.py --model "$model_name" \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --width 0.35 \
-        --height 2 \
-        --prompt-trace arxiv  
     # python request_dispatcher.py --model "$model_name" \
-    #     --arrival-rate 0.6 \
+    #     --arrival-rate 0.45 \
     #     --max-tokens 30000 \
     #     --arrival-trace "$arrival" \
     #     --scheduling "$SCHEDULE" \
-    #     --width 0.15 \
+    #     --width 0.3 \
     #     --height 2 \
-    #     --prompt-trace arxiv  
+    #     --prompt-trace arxiv   
+# # # ==================================  sharegpt-multi  ================================ 
+    # python scripts/send.py 'health'
     # python request_dispatcher.py --model "$model_name" \
-    #     --arrival-rate 0.6 \
+    #     --arrival-rate 2.3 \
     #     --max-tokens 30000 \
     #     --arrival-trace "$arrival" \
     #     --scheduling "$SCHEDULE" \
-    #     --width 0.35 \
-    #     --height 1.2 \
-    #     --prompt-trace arxiv  
-    # python request_dispatcher.py --model "$model_name" \
-    #     --arrival-rate 0.6 \
-    #     --max-tokens 30000 \
-    #     --arrival-trace "$arrival" \
-    #     --scheduling "$SCHEDULE" \
-    #     --width 0.35 \
-    #     --height 2.8 \
-    #     --prompt-trace arxiv  
-
-# ==================================  sharegpt-multi  ================================ 
- 
-        python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 3 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --width 0.35 \
-        --height 2 \
-        --prompt-trace sharegpt-multi       
+    #     --width 0.3 \
+    #     --height 2 \
+    #     --prompt-trace sharegpt-multi      
  
  
 # ==================================  code  ================================ 
-
+    python scripts/send.py 'health'
     python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 1 \
+        --arrival-rate 1.2 \
         --max-tokens 30000 \
         --arrival-trace "$arrival" \
         --width 0.35 \
         --height 2 \
         --scheduling "$SCHEDULE" \
-        --prompt-trace code
- 
+        --prompt-trace code 
+    python request_dispatcher.py --model "$model_name" \
+        --arrival-rate 1.2 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --width 0.45 \
+        --height 2 \
+        --scheduling "$SCHEDULE" \
+        --prompt-trace code 
+    python request_dispatcher.py --model "$model_name" \
+        --arrival-rate 1.2 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --width 0.4 \
+        --height 2 \
+        --scheduling "$SCHEDULE" \
+        --prompt-trace code  
+        
 
     # Terminate python processes
     ps aux | grep python | awk '{print $2}' | xargs -r kill -9
@@ -95,8 +87,4 @@ run_model "fcfs"
 run_model "qoe-avg"
 
 
-
-
-
-
-python send.py "[Duty Cycle] Done running exps for $model_name"
+python send.py "[Duty Cycle] Exps for $model_name"

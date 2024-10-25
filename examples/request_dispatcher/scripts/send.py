@@ -2,6 +2,8 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import sys
+import subprocess
+
 # Sender's email and password (use an "App Password" for Gmail)
 sender_email = "amberjcjj@gmail.com"
 sender_password = "kyuy pasf sfjr rdqj"
@@ -14,12 +16,21 @@ message["From"] = sender_email
 message["To"] = recipient_email
 message["Subject"] = "Experiment Progress"
 
-def read_log(file='../results.log'):
+
+def check_vllm_health():
+    try:
+        result = subprocess.run(['curl', 'http://localhost:8000/v1/models'], capture_output=True, text=True)
+        return result.stdout
+    except Exception as e:
+        err_str = f"An error occurred while calling curl: {e}"
+        return err_str
+
+def read_log(file='../results.log', num_lines=10):
     try:
         with open(file, 'r') as file:
             lines = file.readlines()
             # Get the last ten lines or less if there are fewer lines in the file
-            last_ten_lines = lines[-10:]
+            last_ten_lines = lines[-num_lines:]
             return last_ten_lines
     except FileNotFoundError:
         print("File not found.")
@@ -29,10 +40,15 @@ def read_log(file='../results.log'):
 
 # Add the email body
 job = str(sys.argv[1])
-# body = f"{job} is done! \n" 
 
-body = f"{job} is done! \n" \
-       f"Results: {read_log('../results.log')}"
+
+if job == 'health':
+    body = f"vLLM health check: \n" \
+           f"{check_vllm_health()}\n" \
+           f"{read_log('results.log',5)}"
+else:
+    body = f"{job} is done! \n" \
+        f"Results: {read_log('../results.log',20)}"
 message.attach(MIMEText(body, "plain"))
 
 try:

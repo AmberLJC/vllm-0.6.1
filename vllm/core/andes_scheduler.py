@@ -1,5 +1,6 @@
 from vllm.core.scheduler import * 
 from vllm.core.andes_utils.knapsack_solver import KnapSack
+from vllm.core.andes_utils.lqf import LeastQoEFirst
 from vllm.core.andes_utils.preemption_tracker import PreemptionTracker
 
 class AndesScheduler(Scheduler):
@@ -18,9 +19,15 @@ class AndesScheduler(Scheduler):
         super().__init__(scheduler_config, cache_config, lora_config,
                          pipeline_parallel_size, output_proc_callback)
         self.num_total_gpu_blocks = self.cache_config.num_gpu_blocks
-        self.schedule_solver = KnapSack(self.cache_config.block_size,
-                                        self.num_total_gpu_blocks,
-                                        'greedy')
+        if scheduler_config.scheduling_strategy == 'qoe-avg' or scheduler_config.scheduling_strategy == 'qoe-min':
+            self.schedule_solver = KnapSack(self.cache_config.block_size,
+                                            self.num_total_gpu_blocks,
+                                            'greedy', )
+        elif scheduler_config.scheduling_strategy == 'lqf': 
+            self.schedule_solver = LeastQoEFirst(self.cache_config.block_size,
+                                            self.num_total_gpu_blocks,
+                                            'greedy')
+            
         if self.user_specified_preemption_mode is None:
             self.user_specified_preemption_mode = PreemptionMode.RECOMPUTE
         elif self.user_specified_preemption_mode == 'swap':
@@ -73,7 +80,6 @@ class AndesScheduler(Scheduler):
         else:
             num_free_blocks = max(0, self.block_manager.gpu_allocator.get_num_free_blocks() - len(self.running)) 
             utilization = (self.num_total_gpu_blocks - num_free_blocks) / self.num_total_gpu_blocks
-
 
         # step 1. Andes decides the scheduling change
         seq_to_admit, seq_to_swap_in, seq_to_evict = \

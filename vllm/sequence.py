@@ -426,7 +426,7 @@ class Sequence:
         self.output_len = -1 if 'output_len' not in self.qoe_required else self.qoe_required['output_len']
 
         # TODO: add qoe_tracker, and set as optional
-        if scheduling_strategy == 'qoe-avg':
+        if scheduling_strategy == 'qoe-avg' or scheduling_strategy == 'lqf':
             self.request_tracker = QoETracker(self.qoe_required, self.get_prompt_len(), 'avg')
         elif scheduling_strategy == 'qoe-min':
             self.request_tracker = QoETracker(self.qoe_required, self.get_prompt_len(), 'min')

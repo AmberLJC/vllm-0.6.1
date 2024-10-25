@@ -416,7 +416,7 @@ class EngineArgs:
             '--scheduling-strategy',
             type=str,
             default=EngineArgs.scheduling_strategy,
-            choices=['fcfs', 'qoe-avg', 'qoe-min'],
+            choices=['fcfs', 'qoe-avg', 'qoe-min', 'lqf'],
             help='The scheduling strategy to use for request scheduling.')
         parser.add_argument(
             '--preemption-freq',

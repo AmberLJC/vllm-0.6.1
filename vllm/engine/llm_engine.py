@@ -297,9 +297,10 @@ class LLMEngine:
             self.VLLM_SYSTEM_LOGGING_FILE = '/vllm/examples/request_dispatcher/system_logs'
         
         if not os.path.exists(self.VLLM_SYSTEM_LOGGING_FILE):
-            raise RuntimeError(
-                "Could not find logging file. File does not exist: %s",
-                self.VLLM_SYSTEM_LOGGING_FILE)
+            os.makedirs(self.VLLM_SYSTEM_LOGGING_FILE)
+            # raise RuntimeError(
+            #     "Could not find logging file. File does not exist: %s",
+            #     self.VLLM_SYSTEM_LOGGING_FILE)
         self.last_print_time = time.time()
         date = datetime.datetime.fromtimestamp(self.last_print_time) 
         self.log_formatted_date = date.strftime('%Y-%m-%d %H:%M')
@@ -426,7 +427,7 @@ class LLMEngine:
         # GPU and CPU blocks, which are profiled in the distributed executor.
         self.scheduling_strategy = self.scheduler_config.scheduling_strategy
         scheduler_class = Optional[Type[Scheduler]]
-        if self.scheduling_strategy == "qoe-avg" or self.scheduling_strategy == "qoe-min":
+        if self.scheduling_strategy == "qoe-avg" or self.scheduling_strategy == "qoe-min" or self.scheduling_strategy == "lqf":
             scheduler_class = AndesScheduler
         elif self.scheduling_strategy == "fcfs":
             scheduler_class = Scheduler 

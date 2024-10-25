@@ -42,6 +42,7 @@ run_model() {
     # 453 - 1.7k requests
     # 1387 - 3.2k requests
     # 849 - 1.5k requests
+    # 1189
 
 # run_model "fcfs" 453
 # run_model "qoe-avg" 453
@@ -49,7 +50,12 @@ run_model() {
 # run_model "fcfs" 1387
 # run_model "qoe-avg" 1387
 
+run_model "fcfs" 1189
+run_model "qoe-avg" 1189
+
+ 
 run_model "fcfs" 849
 run_model "qoe-avg" 849
 
+ 
 

@@ -9,6 +9,7 @@ class KnapSack():
                  block_size = int, 
                  total_available_blocks = int, 
                  solver: Literal['greedy', 'dp'] = 'greedy',
+                 delta_t: int = 10,
                  ) -> None:
         
         if solver == 'dp':
@@ -18,7 +19,7 @@ class KnapSack():
         else:
             raise ValueError(f"Solver {self.solver} is not supported")
 
-        self.delta_t = 50
+        self.delta_t = delta_t
         self.block_size = block_size 
         self.total_available_blocks = total_available_blocks 
         self.token_latency = 0.02
@@ -50,8 +51,6 @@ class KnapSack():
         threshold_value = slack_list[index]
         overhead_per_request = self.unit_overhead * sum(context_block_list) * 16 / num_req
         self.max_num_preempt = int( threshold_value // overhead_per_request) 
-        # print(f'overhead_per_request: {overhead_per_request}')
-        # print(f'max_num_preempt: {self.max_num_preempt}')
         if self.max_num_preempt < 1:
             return running + waiting + swapped
         # ============ online preemption ============== 
