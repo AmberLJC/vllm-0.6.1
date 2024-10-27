@@ -1,111 +1,75 @@
 import time
-from typing import Optional, Literal
-from collections import deque
-import random
+from functools import lru_cache
 from knapsack_solver import KnapSack
+import numpy as np
+np.random.seed(3)
 
-# Assuming KnapSack class is imported here
-
-def test_knap_sack_correctness():
-    weights = [1, 2, 3]
-    # weights = [2, 2, 2]
-    values = [60, 100, 120]
-    capacity = 5
-    knap_sack_greedy = KnapSack(block_size=10, total_available_blocks=5, solver='greedy')
-    result = knap_sack_greedy.solver_func(capacity, weights, values)
-    print(f"Greedy solver: {result[0]}, Selected items: {result[1]}")
-
-def test_knap_sack_efficiency():
-    # Initialize test case parameters
-    small_capacity = 50
-    large_capacity = 1000
-    small_item_count = 10
-    large_item_count = 1000
-
-    # Create random weights and values for small test case
-    small_weights = [random.randint(1, 10) for _ in range(small_item_count)]
-    small_values = [random.randint(1, 100) for _ in range(small_item_count)]
+# Mock request class
+class MockRequest:
+    def __init__(self, id, length, slack, value):
+        self.id = id
+        self.length = length
+        self.slack = slack
+        self.value = value
     
-    # Create random weights and values for large test case
-    large_weights = [random.randint(1, 100) for _ in range(large_item_count)]
-    large_values = [random.randint(1, 500) for _ in range(large_item_count)]
+    def get_len(self):
+        return self.length
 
-    # Initialize the KnapSack object
-    knap_sack_greedy = KnapSack(block_size=10, total_available_blocks=100, solver='greedy')
+    def get_slack(self, now):
+        return self.slack
 
-    # Measure time for small test case
+    def get_value(self, now, token_latency, delta_t, is_running):
+        # Simplified value calculation for testing purposes
+        return self.value
+
+# Test case for `pick_requests`
+def test_pick_requests():
+    # Set up the mock environment
+    self = type('', (), {})()  # Creating a simple instance with attributes
+    self.block_size = 1
+    self.unit_overhead = 1
+    self.token_latency = 2
+    self.delta_t = 1
+    self.total_available_blocks = 250
+
+    knapsack = KnapSack(self.block_size, self.total_available_blocks, 'greedy', self.delta_t)
+    knapsack.percentile_to_sacrifice = 0.2
+
+    size_list = [50,30,20]
+    # Create lists of mock requests
+    length = np.random.randint(1, 10, sum(size_list))
+    slacks = np.random.randint(-1, 10, sum(size_list))
+    values = np.random.randint(0, 5, sum(size_list))
+    print(f'Capacity: {self.total_available_blocks}. Used length: {sum(length[:50])} / {sum(length)}')
+    print(f'Slacks: {list(slacks)}')
+    print(f'Length: {list(length)}')
+    running = [MockRequest(id=i, length=length[i], slack=slacks[i], value = values[i]) for i in range(size_list[0])]
+    waiting = [MockRequest(id=i+50, length=length[i+50], slack=slacks[i+50], value = values[i+50]) for i in range(size_list[1])]
+    swapped = [MockRequest(id=i+80, length=length[i+80], slack=slacks[i+80], value = values[i+80]) for i in range(size_list[2])]
+    print(f'========== Start Solver ==========')
+    # Measure correctness by checking output structure
+    result = knapsack.pick_requests( running, waiting, swapped)
+    print(f'KnapSack max_num_preempt: {knapsack.max_num_preempt}')
+    print(f'Pick: {[(res.id, res.length) for res in result]}')
+    print(f'Num of Requests: {len(result)}.  \
+          Used Length:  {sum([res.length for res in result])+len(result)}.  \
+          Newly admitted: {len([res for res in result if res.id > 50])}.')
+
+    ground_truth = [(10, 1), (27, 1), (35, 1), (54, 1), (61, 1), (79, 1), (87, 1), (90, 1), (4, 1), (52, 1), (55, 1), (59, 1), (36, 1), (53, 1), (71, 1), (80, 1), (86, 1), (22, 2), (37, 3), (69, 1), (46, 2), (57, 3), (65, 3), (73, 2), (97, 3), (99, 2), (14, 2), (16, 3), (18, 2), (26, 2), (62, 2), (64, 2), (66, 3), (75, 2), (81, 2), (95, 2), (6, 4), (29, 5), (32, 5), (19, 4), (50, 5), (85, 5), (98, 5), (31, 6), (39, 6), (44, 2), (45, 2), (56, 3), (70, 7), (94, 3), (1, 4), (11, 5), (38, 5), (67, 5), (89, 4), (28, 6), (2, 9), (24, 8)]    # # Measure speed
+    assert  ground_truth == [(res.id, res.length) for res in result]
     start_time = time.time()
-    result_small = knap_sack_greedy.solver_func(small_capacity, small_weights, small_values)
-    small_duration = time.time() - start_time
-    print(f"Greedy solver (small test): {result_small[0]}, Time taken: {small_duration:.6f} seconds")
+    for _ in range(1000):  # Run multiple times to test speed
+        knapsack.pick_requests( running, waiting, swapped)
+    duration = time.time() - start_time
+    print(f"Execution time for 1000 runs: {duration:.4f} seconds")
 
-    # Measure time for large test case
-    start_time = time.time()
-    result_large = knap_sack_greedy.solver_func(large_capacity, large_weights, large_values)
-    large_duration = time.time() - start_time
-    print(f"Greedy solver (large test): {result_large[0]}, Time taken: {large_duration:.6f} seconds")
+# Run the test case
+test_pick_requests()
 
-    knap_sack_greedy = KnapSack(block_size=10, total_available_blocks=100, solver='dp')
+# Num of Requests: 58.            Used Length:  226.            Newly admitted: 31.
+# Execution time for 1000 runs: 0.3621 seconds
+# Execution time for 1000 runs: 0.3570 seconds
+# Execution time for 1000 runs: 0.3067 seconds
 
-    # Measure time for small test case
-    start_time = time.time()
-    result_small = knap_sack_greedy.solver_func(small_capacity, small_weights, small_values)
-    small_duration = time.time() - start_time
-    print(f"DP solver (small test): {result_small[0]}, Time taken: {small_duration:.6f} seconds")
-
-    # Measure time for large test case
-    start_time = time.time()
-    result_large = knap_sack_greedy.solver_func(large_capacity, large_weights, large_values)
-    large_duration = time.time() - start_time
-    print(f"DP solver (large test): {result_large[0]}, Time taken: {large_duration:.6f} seconds")
-
-
-import unittest
-from unittest.mock import MagicMock
-import time
-from knapsack_solver import KnapSack
-class TestPickRequests(unittest.TestCase):
-
-    def setUp(self):
-        # Initialize the object containing pick_requests function
-        self.system = KnapSack(16, 1, 'greedy')  
-        self.system.unit_overhead = 0.1
-        self.system.token_latency = 0.05
-        self.system.delta_t = 1
-        self.system.solver_func = MagicMock(return_value=(None, [0, 1, 2]))  # Mock solver function
-
-    def create_mock_request(self, req_len, slack_value, running_value, waiting_value):
-        """Helper function to create a mock request object."""
-        request = MagicMock()
-        request.get_len.return_value = req_len
-        request.get_slack.return_value = slack_value
-        request.get_value.side_effect = lambda now, token_latency, delta_t, is_running: running_value if is_running else waiting_value
-        return request
-    
-    @staticmethod
-    def print_request_details(request):
-        print(f"Request length: {request.get_len()}") 
-
-    def test_preemption_case(self):
-        now = time.monotonic()
-
-        # Create mock requests
-        running_request1 = self.create_mock_request(req_len=10, slack_value=10, running_value=.5, waiting_value=.5)
-        waiting_request1 = self.create_mock_request(req_len=12, slack_value=6, running_value=1, waiting_value=1)
-        swapped_request1 = swapped_request2 = self.create_mock_request(req_len=20, slack_value=6, running_value=1, waiting_value=1)
-        
-        # Test the pick_requests function
-        selected_requests = self.system.pick_requests(
-            running=[running_request1],
-            waiting=[waiting_request1],
-            swapped=[swapped_request1, swapped_request2]
-        )
- 
-        for request in selected_requests:
-            self.print_request_details(request)
-
-if __name__ == '__main__':
-    unittest.main()
- 
-    # test_knap_sack_efficiency()
-    # test_knap_sack_correctness()
+# DP
+# Execution time for 1000 runs: 8.9303 seconds

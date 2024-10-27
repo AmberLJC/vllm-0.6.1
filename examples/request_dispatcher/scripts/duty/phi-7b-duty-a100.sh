@@ -10,15 +10,27 @@ run_model() {
     local preemption_freq=0.3
     echo "--------------- Start $SCHEDULE for $model_name ----------" >> results.log
 
-    # Start serving the model with the input scheduling strategy
-    vllm serve "$model_name" \
-        --max-num-seqs 512 \
-        --max-num-batched-tokens 200000 \
-        --scheduling-strategy "$SCHEDULE" \
-        --load-format dummy \
-        --trust-remote-code \
-        --preemption_freq "$preemption_freq" \
-        --tensor-parallel-size 4 & 
+    if $SCHEDULE == "sarathi"; then
+        vllm serve "$model_name" \
+            --max-num-seqs 512 \
+            --max-num-batched-tokens 200000 \
+            --scheduling-strategy "$SCHEDULE" \
+            --load-format dummy \
+            --trust-remote-code \
+            --enable-chunked-prefill \
+            --disable-sliding-window \
+            --preemption_freq "$preemption_freq" \
+            --tensor-parallel-size 4 & 
+    else
+        vllm serve "$model_name" \
+            --max-num-seqs 512 \
+            --max-num-batched-tokens 200000 \
+            --scheduling-strategy "$SCHEDULE" \
+            --load-format dummy \
+            --trust-remote-code \
+            --preemption_freq "$preemption_freq" \
+            --tensor-parallel-size 4 & 
+    fi
     
     sleep 70
     python scripts/send.py 'health'

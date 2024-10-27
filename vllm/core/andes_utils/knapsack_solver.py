@@ -1,8 +1,7 @@
 from typing import Optional, Literal
 from collections import deque
 import time
-from functools import lru_cache
-
+from functools import lru_cache 
 
 class KnapSack():
     def __init__(self, 
@@ -24,14 +23,15 @@ class KnapSack():
         self.total_available_blocks = total_available_blocks 
         self.token_latency = 0.02
         self.max_num_preempt = 1
-        self.unit_overhead = 3/90000
+        self.unit_overhead = 3/90000 * self.block_size
+        self.percentile_to_sacrifice = 0.02
 
     def pick_requests(self, running, waiting, swapped): 
         # Helper functions to get context block for list and individual requests
         def get_context_block_list(requests):
             return [get_context_block(r) for r in requests]
         
-        @lru_cache(maxsize=100)
+        @lru_cache(maxsize=150)
         def get_context_block(request):
             return round((request.get_len() + 1) / self.block_size + 0.5)
         
@@ -39,44 +39,37 @@ class KnapSack():
         running = list(running)
         waiting = list(waiting)
         swapped = list(swapped)
-
         now = time.monotonic()
 
         # ============ online preemption ==============
         context_block_list = get_context_block_list(running + waiting + swapped) 
         num_req = len(context_block_list)
         slack_list = [r.get_slack(now) for r in running + waiting + swapped]
+        index = int(self.percentile_to_sacrifice * num_req)
         slack_list = sorted(slack_list)
-        index = int(0.05 * num_req)
         threshold_value = slack_list[index]
-        overhead_per_request = self.unit_overhead * sum(context_block_list) * 16 / num_req
+        overhead_per_request = self.unit_overhead * sum(context_block_list) / num_req
         self.max_num_preempt = int( threshold_value // overhead_per_request) 
+        # print(f"Max preempt: {self.max_num_preempt}")
         if self.max_num_preempt < 1:
             return running + waiting + swapped
         # ============ online preemption ============== 
-
-        # Precompute run and pause values for running, waiting, and swapped
-        run_value_list = [r.get_value(now, self.token_latency, self.delta_t, True)/get_context_block(r) for r in running] 
-        pause_value_list = [r.get_value(now, self.token_latency, self.delta_t, False)/get_context_block(r) for r in waiting + swapped]
-        maybe_preempt = [(i, r) for i, r in enumerate(running) if run_value_list[i] <= max(pause_value_list, default=1)][:self.max_num_preempt]
+        run_value_list = [r.get_value(now, self.token_latency, self.delta_t, True) / get_context_block(r) for r in running] 
+        pause_value_list = [r.get_value(now, self.token_latency, self.delta_t, False) / get_context_block(r) for r in waiting + swapped]
+        threshold_value = max(pause_value_list, default=1)
+        maybe_preempt = [(i, r) for i, r in enumerate(running) if run_value_list[i] <= threshold_value ][:self.max_num_preempt]
 
         # Use set for efficient index checking when keeping non-preempted running items
         preempt_indices = {i for i, _ in maybe_preempt}
+        keep_running_idx = [i for i, _ in enumerate(running) if i not in preempt_indices]
         keep_running = [r for i, r in enumerate(running) if i not in preempt_indices]
         running = [r for _, r in maybe_preempt]
  
-        available_blocks = self.total_available_blocks - sum(get_context_block_list(keep_running))
-        context_block_list = get_context_block_list(running + waiting + swapped)
+        available_blocks = self.total_available_blocks - sum([context_block_list[i] for i in keep_running_idx])
+        context_block_list = [context_block_list[i] for i in preempt_indices] + context_block_list[-len(waiting + swapped):]
         value_list = [run_value_list[i] for i in preempt_indices] + pause_value_list 
         _, best_plan = self.solver_func(available_blocks, context_block_list, value_list)
-        # print(f'best_plan: {best_plan}={result}: available_blocks: {available_blocks}; context_block_list: {context_block_list}; value_list: {value_list}')
         return [(running + waiting + swapped)[i] for i in best_plan] + keep_running
-
-        # context_block_list = get_context_block_list(running + waiting + swapped)
-        # value_list = [r.get_value(now, self.token_latency, self.delta_t, True) for r in running] 
-        # value_list += [r.get_value(now, self.token_latency, self.delta_t, False) for r in waiting + swapped] 
-        # max_value, best_plan = self.solver_func(self.total_available_blocks, context_block_list, value_list )
-        # return [(running + waiting + swapped)[i] for i in best_plan]  
 
     def get_context_block(self, request):
         return round((request.get_len() + 1) / self.block_size + 0.5)
@@ -112,7 +105,6 @@ class KnapSack():
         # Calculate value-to-weight ratio and sort items by this ratio in descending order
         items = [(v / w, w, v, i) for i, (v, w) in enumerate(zip(values, weights))]
         items.sort(reverse=True, key=lambda x: x[0]) 
-
         current_weight = current_value = 0
         picked_items = [] 
         for _, weight, value, index in items:
@@ -125,41 +117,41 @@ class KnapSack():
                 #     continue
                 # else:
                 break
-
         return current_value, picked_items
 
     @staticmethod
-    def _dp_knapsack(M, B, deltaQ):
-        l = N = len(deltaQ) 
-        dp = [[[-float('inf') for _ in range(M+1)] for _ in range(B+1)] for _ in range(N+1)]
-        choice = [[[0 for _ in range(M+1)] for _ in range(B+1)] for _ in range(N+1)]
-        dp[0][0][0] = 0  # Base case
+    def _dp_knapsack(capacity: int, weights: list, values: list) -> tuple:
+        """
+        Dynamic programming solution for the 0/1 Knapsack problem.
 
-        # Main DP loop
-        for i in range(1, N+1):
-            for b in range(min(i, B)+1):  # +1 because range is exclusive
-                for m in range(M+1):
-                    # Case 1: Do not select the i-th request
-                    if dp[i][b][m] < dp[i-1][b][m]:
-                        dp[i][b][m] = dp[i-1][b][m]
-                        choice[i][b][m] = 0
+        Args:
+        capacity (int): Maximum weight the knapsack can carry.
+        weights (list): List of weights of the items.
+        values (list): List of values of the items.
 
-                    # Case 2: Select the i-th request, if it does not exceed the constraints
-                    if b > 0 and m + l[i-1] <= M and dp[i][b][m + l[i-1]] < dp[i-1][b-1][m] + deltaQ[i-1]:
-                        dp[i][b][m + l[i-1]] = dp[i-1][b-1][m] + deltaQ[i-1]
-                        choice[i][b][m + l[i-1]] = 1
-
-        # Find the optimal solution and corresponding memory
-        max_dealtQ, current_m = max((value, index) for index, value in enumerate(dp[N][B]))
-
-        # Backtrack to find the decision array x_i
-        x = [0] * (N+1)  # Initialize decision array with zeros
-        current_b = B
-        for i in range(N, 0, -1):
-            x[i] = choice[i][current_b][current_m]
-            if x[i] == 1:
-                current_m -= l[i-1]
-                current_b -= 1
-
-        picked_requests = [i for i in range(1, N+1) if x[i] == 1] 
-        return  max_dealtQ, picked_requests
+        Returns:
+        tuple: Maximum value of the picked items and the list of indices of the picked items.
+        """
+        n = len(weights)
+        # dp[i][w] will store the maximum value with the first i items and weight limit w
+        dp = [[0] * (capacity + 1) for _ in range(n + 1)]
+        
+        # Fill the dp array
+        for i in range(1, n + 1):
+            for w in range(capacity + 1):
+                if weights[i - 1] <= w:  # if the current item can fit in the remaining weight
+                    dp[i][w] = max(dp[i - 1][w], dp[i - 1][w - weights[i - 1]] + values[i - 1])
+                else:
+                    dp[i][w] = dp[i - 1][w]
+        
+        # Traceback to find the items to include in the knapsack
+        picked_items = []
+        w = capacity
+        for i in range(n, 0, -1):
+            if dp[i][w] != dp[i - 1][w]:  # Item i-1 is included
+                picked_items.append(i - 1)
+                w -= weights[i - 1]
+        
+        # The maximum value is stored in dp[n][capacity]
+        max_value = dp[n][capacity]
+        return max_value, picked_items[::-1]

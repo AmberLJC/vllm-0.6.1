@@ -49,13 +49,9 @@ run_model() {
 
 # run_model "fcfs" 1387
 # run_model "qoe-avg" 1387
-
-run_model "fcfs" 1189
-run_model "qoe-avg" 1189
-
  
-run_model "fcfs" 849
-run_model "qoe-avg" 849
+run_model "fcfs" 831
+run_model "qoe-avg" 831
 
  
 
