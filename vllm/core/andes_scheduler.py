@@ -3,6 +3,8 @@ from vllm.core.andes_utils.knapsack_solver import KnapSack
 from vllm.core.andes_utils.lqf import LeastQoEFirst
 from vllm.core.andes_utils.preemption_tracker import PreemptionTracker
 
+import atexit
+
 class AndesScheduler(Scheduler):
     """
     Implementation of the Andes, which is a QoE-aware serving system.
@@ -35,15 +37,23 @@ class AndesScheduler(Scheduler):
         elif self.user_specified_preemption_mode == 'recompute':
             self.user_specified_preemption_mode = PreemptionMode.RECOMPUTE
         
-        self.preempt_tracker = PreemptionTracker(600, 30)
-        self.request_arrival_tracker = PreemptionTracker(600, 30)
+        # self.preempt_tracker = PreemptionTracker(600, 30)
+        # self.request_arrival_tracker = PreemptionTracker(600, 30)
         self.preemption_freq = scheduler_config.preemption_freq
         self.iter = 0
-   
+        self.system_logfile = scheduler_config.system_logfile
+        self.scheduler_action = []
+        atexit.register(self.write_log_at_exit)
+
+    def write_log_at_exit(self):
+        log_result = "Your log message here"  # Replace with actual log result
+        with open(self.system_logfile, 'a') as f:
+            f.write(f"{self.scheduler_action}\n")
+
     def add_seq_group(self, seq_group: SequenceGroup) -> None:
         # Add sequence groups to the waiting queue.
         self.waiting.append(seq_group)
-        self.request_arrival_tracker.add_request(seq_group.metrics.arrival_time)
+        # self.request_arrival_tracker.add_request(seq_group.metrics.arrival_time)
 
     def _schedule(self) -> SchedulerOutputs:
         return self._schedule_qoe_aware()
@@ -74,8 +84,8 @@ class AndesScheduler(Scheduler):
         running_scheduled = SchedulerRunningOutputs.create_empty()
         swapped_in = SchedulerSwappedInOutputs.create_empty()
 
-        if self.iter % 10 != 0 or \
-            self.preempt_tracker.get_request_count() > self.request_arrival_tracker.get_request_count() * self.preemption_freq: 
+        if self.iter % 10 != 0: # or \
+            # self.preempt_tracker.get_request_count() > self.request_arrival_tracker.get_request_count() * self.preemption_freq: 
             utilization = 0
         else:
             num_free_blocks = max(0, self.block_manager.gpu_allocator.get_num_free_blocks() - len(self.running)) 
@@ -108,11 +118,12 @@ class AndesScheduler(Scheduler):
             self.running.remove(seq_group)
             # logger.info(f"[Andes] Evict - {preempted_mode} req - {seq_group.request_id}")
         preempted += len(seq_to_evict)
-        now = time.monotonic()
-        self.preempt_tracker.add_request(now, preempted)
+        # now = time.monotonic()
+        # self.preempt_tracker.add_request(now, preempted)
 
         if len(seq_to_evict) > 0:
             logger.info(f"[Andes] Evicting {len(seq_to_evict)} requests")
+            self.scheduler_action.append(f"[{int(time.time())}] Evicting {len(seq_to_evict)} requests")
 
         # step 3. if there is new request to admit then do not schedule decode
         if seq_to_admit:

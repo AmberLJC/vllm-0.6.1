@@ -1,59 +1,116 @@
 #!/bin/bash
+# GQA  - 32B - 60.5GB
+# GPU blocks: 60536, # CPU blocks: 13107
+
 ps aux | grep python | awk '{print $2}' | xargs -r kill -9
 
 # Function to run the VLLM model with the specified scheduling strategy
 run_model() {
     cd /vllm/examples/request_dispatcher 
     local SCHEDULE=$1  # Accepts scheduling strategy as an argument
-    local model_name="microsoft/Phi-3-mini-128k-instruct"  
-    local arrival="gamma"
-    local preemption_freq=0.2
-    echo "--------------- Start $SCHEDULE for $model_name ----------" >> results.log
+    local model_name="CohereForAI/c4ai-command-r-08-2024"
+    local arrival="duty" 
+    local preemption_freq=0.1
+    echo "--------------- [Duty Cycle] Start $SCHEDULE for $model_name ----------" >> results.log
 
-    # Start serving the model with the input scheduling strategy
-    vllm serve "$model_name" \
-        --max-num-seqs 512 \
-        --max-num-batched-tokens 200000 \
-        --scheduling-strategy "$SCHEDULE" \
-        --load-format dummy \
-        --trust-remote-code \
-        --preemption_freq "$preemption_freq" \
-        --tensor-parallel-size 4 & 
+    if [ "$SCHEDULE" == "sarathi" ]; then
+        vllm serve "$model_name" \
+            --max-num-batched-tokens 100000 \
+            --scheduling-strategy fcfs \
+            --load-format dummy \
+            --preemption_freq "$preemption_freq" \
+            --enable-chunked-prefill \
+            --disable-sliding-window \
+            --tensor-parallel-size 8 &
+
+    else 
+        vllm serve "$model_name" \
+            --max-num-batched-tokens 100000 \
+            --scheduling-strategy "$SCHEDULE" \
+            --load-format dummy \
+            --preemption_freq "$preemption_freq" \
+            --tensor-parallel-size 8 &
+    fi
+
+
+    sleep 80
     
-    sleep 66
     
-# ==================================   arxiv  ================================  
+# ========================================================================== code ============================================================== 
+    python scripts/send.py 'health'
+    python request_dispatcher.py --model "$model_name" \
+        --arrival-rate 0.65 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --scheduling "$SCHEDULE" \
+        --width 0.25 \
+        --height 2 \
+        --prompt-trace code  
+    python request_dispatcher.py --model "$model_name" \
+        --arrival-rate 0.65 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --scheduling "$SCHEDULE" \
+        --width 0.3 \
+        --height 2 \
+        --prompt-trace code  
+    python request_dispatcher.py --model "$model_name" \
+        --arrival-rate 0.65 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --scheduling "$SCHEDULE" \
+        --width 0.35 \
+        --height 2 \
+        --prompt-trace code  
+    python request_dispatcher.py --model "$model_name" \
+        --arrival-rate 0.65 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --scheduling "$SCHEDULE" \
+        --width 0.4 \
+        --height 2 \
+        --prompt-trace code  
+    python request_dispatcher.py --model "$model_name" \
+        --arrival-rate 0.65 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --scheduling "$SCHEDULE" \
+        --width 0.45 \
+        --height 2 \
+        --prompt-trace code  
+    python request_dispatcher.py --model "$model_name" \
+        --arrival-rate 0.65 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --scheduling "$SCHEDULE" \
+        --width 0.35 \
+        --height 1.2 \
+        --prompt-trace code  
+    python request_dispatcher.py --model "$model_name" \
+        --arrival-rate 0.65 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --scheduling "$SCHEDULE" \
+        --width 0.35 \
+        --height 1.6 \
+        --prompt-trace code  
+    python request_dispatcher.py --model "$model_name" \
+        --arrival-rate 0.65 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --scheduling "$SCHEDULE" \
+        --width 0.35 \
+        --height 2.4 \
+        --prompt-trace code  
+    python request_dispatcher.py --model "$model_name" \
+        --arrival-rate 0.65 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --scheduling "$SCHEDULE" \
+        --width 0.35 \
+        --height 2.8 \
+        --prompt-trace code  
 
-    python request_dispatcher.py --model "$model_name" \
-        --num-requests 500 \
-        --arrival-rate 0.3 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --burst 1 \
-        --prompt-trace arxiv   
-        
-# ==================================  sharegpt-multi  ================================ 
-  
-    python request_dispatcher.py --model "$model_name" \
-        --num-requests 1000 \
-        --arrival-rate 3 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --burst 10 \
-        --prompt-trace sharegpt-multi    
-        
-# ================================== code ================================ 
-
-    python request_dispatcher.py --model "$model_name" \
-        --num-requests 1000 \
-        --arrival-rate 0.6 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --burst 10 \
-        --scheduling "$SCHEDULE" \
-        --prompt-trace code 
 
     # Terminate python processes
     pkill python
@@ -61,6 +118,9 @@ run_model() {
     cd /vllm/examples/request_dispatcher/scripts    
     python send.py "Done running $SCHEDULE for $model_name"
 } 
+ 
 
-
-run_model "fcfs" 
+run_model "fcfs"
+run_model "qoe-avg"
+run_model 'sarathi'
+run_model 'lqf'

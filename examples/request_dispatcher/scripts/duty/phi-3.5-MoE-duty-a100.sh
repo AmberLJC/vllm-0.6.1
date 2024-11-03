@@ -10,11 +10,11 @@ run_model() {
     local preemption_freq=0.3
     echo "--------------- [Duty Cycle] Start $SCHEDULE $arrival ($preemption_freq)  for $model_name ----------" >> results.log
 
-    if $SCHEDULE == "sarathi"; then
+    if [ "$SCHEDULE" == "sarathi" ]; then
         vllm serve "$model_name" \
             --max-num-seqs 512 \
             --max-num-batched-tokens 200000 \
-            --scheduling-strategy "$SCHEDULE" \
+            --scheduling-strategy fcfs \
             --load-format dummy \
             --trust-remote-code \
             --preemption_freq "$preemption_freq" \
@@ -41,18 +41,26 @@ run_model() {
         --max-tokens 30000 \
         --arrival-trace "$arrival" \
         --scheduling "$SCHEDULE" \
-        --width 0.4 \
+        --width 0.25 \
         --height 2 \
-        --prompt-trace arxiv   
+        --prompt-trace arxiv
     python request_dispatcher.py --model "$model_name" \
         --arrival-rate 0.45 \
         --max-tokens 30000 \
         --arrival-trace "$arrival" \
         --scheduling "$SCHEDULE" \
-        --width 0.45 \
+        --width 0.3 \
         --height 2 \
-        --prompt-trace arxiv   
-
+        --prompt-trace arxiv
+    python request_dispatcher.py --model "$model_name" \
+        --arrival-rate 0.45 \
+        --max-tokens 30000 \
+        --arrival-trace "$arrival" \
+        --scheduling "$SCHEDULE" \
+        --width 0.35 \
+        --height 2 \
+        --prompt-trace arxiv
+        
 # # # ==================================  sharegpt-multi  ================================ 
     
     python scripts/send.py 'health'
@@ -61,47 +69,7 @@ run_model() {
         --max-tokens 30000 \
         --arrival-trace "$arrival" \
         --scheduling "$SCHEDULE" \
-        --width 0.25 \
-        --height 2 \
-        --prompt-trace sharegpt-multi      
-    python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 2.3 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --width 0.3 \
-        --height 2 \
-        --prompt-trace sharegpt-multi      
-    python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 2.3 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
         --width 0.35 \
-        --height 2 \
-        --prompt-trace sharegpt-multi      
-    python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 2.3 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --width 0.4 \
-        --height 2 \
-        --prompt-trace sharegpt-multi      
-    python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 2.3 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --width 0.45 \
-        --height 2 \
-        --prompt-trace sharegpt-multi      
-    python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 2.3 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --scheduling "$SCHEDULE" \
-        --width 0.3 \
         --height 1.2 \
         --prompt-trace sharegpt-multi      
     python request_dispatcher.py --model "$model_name" \
@@ -109,7 +77,7 @@ run_model() {
         --max-tokens 30000 \
         --arrival-trace "$arrival" \
         --scheduling "$SCHEDULE" \
-        --width 0.3 \
+        --width 0.35 \
         --height 1.6 \
         --prompt-trace sharegpt-multi      
     python request_dispatcher.py --model "$model_name" \
@@ -117,7 +85,7 @@ run_model() {
         --max-tokens 30000 \
         --arrival-trace "$arrival" \
         --scheduling "$SCHEDULE" \
-        --width 0.3 \
+        --width 0.35 \
         --height 2.4 \
         --prompt-trace sharegpt-multi      
     python request_dispatcher.py --model "$model_name" \
@@ -125,85 +93,20 @@ run_model() {
         --max-tokens 30000 \
         --arrival-trace "$arrival" \
         --scheduling "$SCHEDULE" \
-        --width 0.3 \
+        --width 0.35 \
         --height 2.8 \
         --prompt-trace sharegpt-multi      
-
- 
+        
 # ==================================  code  ================================ 
-    python scripts/send.py 'health'
-    python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 1.2 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --width 0.25 \
-        --height 2 \
-        --scheduling "$SCHEDULE" \
-        --prompt-trace code 
-    python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 1.2 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --width 0.3 \
-        --height 2 \
-        --scheduling "$SCHEDULE" \
-        --prompt-trace code  
-    python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 1.2 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --width 0.35 \
-        --height 2 \
-        --scheduling "$SCHEDULE" \
-        --prompt-trace code 
-    python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 1.2 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --width 0.4 \
-        --height 2 \
-        --scheduling "$SCHEDULE" \
-        --prompt-trace code  
-    python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 1.2 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --width 0.45 \
-        --height 2 \
-        --scheduling "$SCHEDULE" \
-        --prompt-trace code 
-    python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 1.2 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --width 0.35 \
-        --height 1.2 \
-        --scheduling "$SCHEDULE" \
-        --prompt-trace code  
-    python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 1.2 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --width 0.35 \
-        --height 1.6 \
-        --scheduling "$SCHEDULE" \
-        --prompt-trace code 
-    python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 1.2 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --width 0.35 \
-        --height 2.4 \
-        --scheduling "$SCHEDULE" \
-        --prompt-trace code 
-    python request_dispatcher.py --model "$model_name" \
-        --arrival-rate 1.2 \
-        --max-tokens 30000 \
-        --arrival-trace "$arrival" \
-        --width 0.35 \
-        --height 2.8 \
-        --scheduling "$SCHEDULE" \
-        --prompt-trace code 
+    # python scripts/send.py 'health'
+    # python request_dispatcher.py --model "$model_name" \
+    #     --arrival-rate 1.2 \
+    #     --max-tokens 30000 \
+    #     --arrival-trace "$arrival" \
+    #     --width 0.35 \
+    #     --height 2 \
+    #     --scheduling "$SCHEDULE" \
+    #     --prompt-trace code  
     # Terminate python processes
     ps aux | grep python | awk '{print $2}' | xargs -r kill -9
     cd /vllm/examples/request_dispatcher/scripts    
@@ -214,6 +117,6 @@ run_model() {
 # run_model "fcfs"
 # # sleep 5
 # run_model "qoe-avg"
-run_model 'lqf'
+# run_model 'lqf'
 run_model 'sarathi'
 

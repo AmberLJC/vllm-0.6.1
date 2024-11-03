@@ -306,16 +306,6 @@ class LLMEngine:
         self.log_formatted_date = date.strftime('%Y-%m-%d %H:%M')
         self.system_logfile=f'{self.VLLM_SYSTEM_LOGGING_FILE}/{self.log_formatted_date}-sys-stats.txt'
 
-        # def dump_stats() -> None:
-        #     # dump list to a file
-        #     date = datetime.datetime.fromtimestamp(time.time())
-        #     formatted_date = date.strftime('%Y-%m-%d %H:%M')
-            
-        #     with open(f'{VLLM_SYSTEM_LOGGING_FILE}/{formatted_date}-sys-stats.txt', 'w') as f:
-        #         for stats in self.stats:
-        #             f.write(f"{stats}\n")
-        
-        # atexit.register(dump_stats)
 
         if not self.model_config.skip_tokenizer_init:
             self.tokenizer = self._init_tokenizer()
@@ -429,6 +419,7 @@ class LLMEngine:
         scheduler_class = Optional[Type[Scheduler]]
         if self.scheduling_strategy == "qoe-avg" or self.scheduling_strategy == "qoe-min" or self.scheduling_strategy == "lqf":
             scheduler_class = AndesScheduler
+            self.scheduler_config.system_logfile = self.system_logfile
         elif self.scheduling_strategy == "fcfs":
             scheduler_class = Scheduler 
         else:
@@ -1458,7 +1449,6 @@ class LLMEngine:
             num_preemption_iter = (0 if scheduler_outputs is None else
                                 scheduler_outputs.preempted)
 
-        
             log_result = f'[{int(now)}] System Stats: Running: {num_running_sys},  ' \
                             f'  - Swapped: {num_swapped_sys},  ' \
                             f'  - Waiting: {num_waiting_sys},  ' \
@@ -1468,6 +1458,7 @@ class LLMEngine:
                 f.write(f"{log_result}\n")
             self.last_print_time = now
         # return stats
+
 
     def _get_stats(self,
                    scheduler_outputs: Optional[SchedulerOutputs],

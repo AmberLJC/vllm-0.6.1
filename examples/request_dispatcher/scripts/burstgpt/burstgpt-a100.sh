@@ -9,7 +9,7 @@ run_model() {
     local model_name="meta-llama/Meta-Llama-3.1-70B"
     local arrival="burstgpt"
     local time_index=$2
-    local preemption_freq=0.3
+    local preemption_freq=0.5
     echo "--------------- [BurstGPT] Start $SCHEDULE ($preemption_freq) for $model_name ----------" >> results.log
 
     # Start serving the model with the input scheduling strategy
@@ -22,7 +22,7 @@ run_model() {
         --preemption_freq "$preemption_freq" \
         --tensor-parallel-size 8 &
 
-    sleep 70
+    sleep 66
     
     python request_dispatcher.py --model "$model_name" \
         --max-tokens 30000 \
@@ -35,6 +35,7 @@ run_model() {
     # Terminate python processes
     pkill python
     ps aux | grep python | awk '{print $2}' | xargs -r kill -9
+    python scripts/send.py "[BurstGPT] Done running $SCHEDULE for $model_name"
 } 
     # id: 496 - 5.6k requests 
     # id: 1020 - 3.7k requests   
@@ -43,15 +44,20 @@ run_model() {
     # 1387 - 3.2k requests
     # 849 - 1.5k requests
     # 1189
+    
+# run_model "fcfs" 2004
+# run_model "qoe-avg" 2004
+  
 
-# run_model "fcfs" 453
-# run_model "qoe-avg" 453
+# run_model "fcfs" 2069
+# run_model "qoe-avg" 2069
 
-# run_model "fcfs" 1387
-# run_model "qoe-avg" 1387
+  
+run_model "fcfs" 2089
+# run_model "qoe-avg" 2060
+# run_model "qoe-avg" 2004
+
+
+
  
-run_model "fcfs" 831
-run_model "qoe-avg" 831
-
  
-

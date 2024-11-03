@@ -10,6 +10,7 @@ from typing import AsyncGenerator
 from collections import defaultdict 
 import aiohttp
 import datetime
+import subprocess
 
 from read_sys_log import visualize_system_stats, list_files_by_creation_time
 from analyze_perf import analyze_one_trace, plot_cdf_together
@@ -99,7 +100,12 @@ def read_arrival_trace(args: argparse.Namespace
     time_range = args.time_range
 
     if arrival_trace == 'burstgpt':
-        file_name = 'arrival_trace/BurstGPT_1.csv'
+        file_name = 'arrival_trace/BurstGPT_2.csv'
+        import os
+        if not os.path.exists(file_name): 
+            command = ["wget", "https://github.com/HPMLL/BurstGPT/releases/download/v1.1/BurstGPT_2.csv"] 
+            subprocess.run(command)
+
         df = pd.read_csv(file_name)
         time_list = df['Timestamp']
 

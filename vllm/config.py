@@ -1029,6 +1029,7 @@ class SchedulerConfig:
         self.scheduling_strategy = scheduling_strategy
         self.preemption_freq = preemption_freq
         self._verify_args()
+        self.system_logfile = None
 
     def _verify_args(self) -> None:
         if (self.max_num_batched_tokens < self.max_model_len

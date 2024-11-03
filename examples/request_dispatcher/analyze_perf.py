@@ -1,20 +1,18 @@
 import json
 import os
 import matplotlib.pyplot as plt
-# from datetime import datetime
 from collections import defaultdict
 import numpy as np
-# Initialize empty lists to store timestamps and latency_per_total_token values
- 
 from transformers import AutoTokenizer 
 tokenizer = AutoTokenizer.from_pretrained("microsoft/Phi-3-mini-128k-instruct")
 
 from vllm.core.andes_utils.qoe_tracker import QoETracker
 
 # Read the log file and extract the data
-
-
 FIG_DIR = 'fig'
+if not os.path.exists(FIG_DIR):
+	os.makedirs(FIG_DIR)
+
 def read_log(filename, log_data):
 	with open(filename, 'r') as file:
 		for line in file:
@@ -132,6 +130,7 @@ def process_results(log_data, alpha = 3):
 
 	metric_dict = {}
 	metric_dict['avg_token_latency'] = avg_token_latency_list
+	print(f'avg tds: {1/np.mean(avg_token_latency_list)}')
 	# metric_dict['cv_token_latency'] = cv_token_latency_list
 	metric_dict['pause_duration'] = pause_duration_list
 	metric_dict['pause_times'] = pause_times_list
@@ -410,9 +409,12 @@ def analyze_one_trace(file_name):
 
 if __name__ == "__main__":
 	dir = './' # 'past/'
-	file_list = [
-		'2024-10-24 02:21-meta-llama-Meta-Llama-3.1-70B-sharegpt-multi-duty*960-0.8(h=2.0,w=0.35)-lqf.json'
-	]
+	file_list = [ 
+'2024-11-01 13:12-CohereForAI-c4ai-command-r-08-2024-arxiv-duty*419-0.35(h=2.0,w=0.25)-qoe-avg.json',
+'2024-11-01 16:15-CohereForAI-c4ai-command-r-08-2024-arxiv-duty*419-0.35(h=2.0,w=0.3)-qoe-avg.json',
+'2024-11-01 19:09-CohereForAI-c4ai-command-r-08-2024-arxiv-duty*419-0.35(h=2.0,w=0.25)-qoe-avg.json',
+
+		]
 	if not file_list:
 		file_list = read_all_files()
 
