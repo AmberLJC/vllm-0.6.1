@@ -22,23 +22,34 @@ np.random.seed(42)
 async def single_request(prompt_config: dict,  
                    model_config: dict,
                    url: str = "http://localhost:8000/v1/completions",
-                   file_name: str = "results.json"
+                   file_name: str = "results.json",
+                   default_system: bool = False,
                   ): 
     # Define the headers
     headers = {"Content-Type": "application/json"}
 
     # Define the data payload
-    config = {
-        "model": model_config['model'],
-        "prompt": prompt_config['prompt'],
-        "max_tokens": model_config['max_tokens'],
-        "stream": model_config['stream'],
-        "qoe_required": {
+    qoe_config = {
             "ttft": prompt_config['ttft'],
             "latency": prompt_config['latency'],
             "output_len": min(model_config['max_tokens'], prompt_config['output_len']),
         }
-    } 
+    if default_system:
+        config = {
+            "model": model_config['model'],
+            "prompt": prompt_config['prompt'],
+            "max_tokens": model_config['max_tokens'],
+            "stream": model_config['stream'],
+            # "qoe_required": qoe_config
+        } 
+    else: 
+        config = {
+            "model": model_config['model'],
+            "prompt": prompt_config['prompt'],
+            "max_tokens": model_config['max_tokens'],
+            "stream": model_config['stream'],
+            "qoe_required": qoe_config
+        } 
     time_list = [time.monotonic()]
     async with aiohttp.ClientSession(timeout=DEFAULT_TIMEOUT) as session: 
         async with session.post(url, headers=headers, json=config) as response:
@@ -50,7 +61,7 @@ async def single_request(prompt_config: dict,
             async for chunk, _ in response.content.iter_chunks():
                 chunks.append(chunk) 
                 time_list.append(time.monotonic())
-    log_result(file_name, time_list, config['qoe_required'], config['prompt'])
+    log_result(file_name, time_list, qoe_config, config['prompt'])
 
 def log_result(file_name: str,
                time_list: list, 
@@ -205,7 +216,7 @@ async def main(args):
     
     for i, arr_int in enumerate(arrival_intervals): 
         print(f"Progress: {i}/{len(arrival_intervals)} ") 
-        task = asyncio.create_task(single_request(prompt_trace[i % num_prompts], model_config, args.url, result_file))
+        task = asyncio.create_task(single_request(prompt_trace[i % num_prompts], model_config, args.url, result_file, args.default_system))
         tasks.append(task)  
         await asyncio.sleep(max(arr_int, 0.01))
 
@@ -241,6 +252,7 @@ if __name__ == "__main__":
     parser.add_argument("--scheduling", type=str, default="unknown", help="Notes for the server")
     parser.add_argument("--num-requests", type=int, default=100)
     parser.add_argument("--max-tokens", type=int, default=1024)
+    parser.add_argument("--default-system", action="store_true")
     args = parser.parse_args()
 
     asyncio.run(main(args))

@@ -118,7 +118,7 @@ class MinQoEOptimizer(QoEOptimizer):
         if length == 0 and cur_time > self.qoe_required['ttft']:
             self.recorded_value = 0
             return 0
-        elif length > 0 and token_timestamp[-1] > self.qoe_required['ttft'] + length * self.qoe_required['latency']:
+        elif length > 0 and (cur_time - self.qoe_required['ttft']) * self.display_rate > length:
             self.recorded_value = 0
             return 0
 

@@ -410,10 +410,8 @@ def analyze_one_trace(file_name):
 if __name__ == "__main__":
 	dir = './' # 'past/'
 	file_list = [ 
-'2024-11-01 13:12-CohereForAI-c4ai-command-r-08-2024-arxiv-duty*419-0.35(h=2.0,w=0.25)-qoe-avg.json',
-'2024-11-01 16:15-CohereForAI-c4ai-command-r-08-2024-arxiv-duty*419-0.35(h=2.0,w=0.3)-qoe-avg.json',
-'2024-11-01 19:09-CohereForAI-c4ai-command-r-08-2024-arxiv-duty*419-0.35(h=2.0,w=0.25)-qoe-avg.json',
-
+'2024-11-05 01:12-microsoft-Phi-3-mini-128k-instruct-arxiv-gamma*49-0.5(10)-qoe-avg.json',
+'2024-11-05 01:22-microsoft-Phi-3-mini-128k-instruct-arxiv-gamma*49-0.5(10)-qoe-min.json',
 		]
 	if not file_list:
 		file_list = read_all_files()

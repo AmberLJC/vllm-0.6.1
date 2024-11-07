@@ -24,7 +24,7 @@ class KnapSack():
         self.token_latency = 0.02
         self.max_num_preempt = 1
         self.unit_overhead = 3/90000 * self.block_size
-        self.percentile_to_sacrifice = 0.05
+        self.percentile_to_sacrifice = 0.1
 
     def pick_requests(self, running, waiting, swapped): 
         # Helper functions to get context block for list and individual requests

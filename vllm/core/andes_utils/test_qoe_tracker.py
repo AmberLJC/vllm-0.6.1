@@ -9,12 +9,13 @@ qoe_required = {
 time_list = [
               list(np.arange(0, 10, 0.2)), # 1
               list(np.arange(0, 10, 0.5)), # 1
+              list(np.arange(0, 10, 2)), # 
              list(np.arange(5, 10, 0.2)), # 0.75
              list(np.arange(5, 20, 0.2)), # 0.75
             #  list(np.arange(10, 20, 0.2)),   #
             #  list(np.arange(10, 15, 0.1)),    #
-            #   list(np.arange(0, 1, 0.2)) + list(np.arange(10, 11, 0.2)), # 0.85
-            #   list(np.arange(0, 1, 0.2)) + list(np.arange(10, 12.5, 0.5)), # 0.85
+              list(np.arange(0, 1, 0.2)) + list(np.arange(10, 11, 0.2)), # 0.85
+              list(np.arange(0, 1, 0.2)) + list(np.arange(10, 12.5, 0.5)), # 0.85
              ] 
  
 # @pytest.mark.parametrize("time_list", time_list)
@@ -35,8 +36,9 @@ def test_qoe_calculation(time_list, qoe_required, cur_time):
     rt = QoETracker(qoe_required, obj_func='min')
     for time in time_list:
         rt.add(time) 
-        value = rt.get_value( cur_time, 0.2, 100)
-    print(f"value ({len(time_list)}, {cur_time}) : {value}" ) 
+        value = rt.get_value( time, 0.2, 100)
+        # print(value)
+    print(f"value ({len(time_list)}) : {value}" ) 
 
 # time_list = [
 #         [],
