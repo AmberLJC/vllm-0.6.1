@@ -23,7 +23,7 @@ def check_vllm_health():
         return result.stdout
     except Exception as e:
         err_str = f"An error occurred while calling curl: {e}"
-        return err_str
+        return None
 
 def read_log(file='../results.log', num_lines=10):
     try:

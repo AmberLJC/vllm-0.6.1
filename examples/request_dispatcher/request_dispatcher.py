@@ -104,6 +104,16 @@ def generate_duty_cycle_poisson_arrival(arrival_rate, height, width, duration=18
     interval_list = np.concatenate((interval_list, peak_interval, non_peak_interval))
   return interval_list
 
+def plot_histogram(arrival_time_list, num_bins=360):
+    import matplotlib.pyplot as plt
+    arrival_time_list = [(x-arrival_time_list[0])//60 for x in arrival_time_list]
+    plt.figure(figsize=(10, 4))
+    plt.hist(arrival_time_list, bins=num_bins)
+    plt.xlabel('Arrival Time')
+    plt.ylabel('Frequency')
+    plt.title('Histogram of Arrival Times')
+    plt.xlim(xmin=0)
+    plt.savefig('fig/arrival_time_histogram.png')
 
 def read_arrival_trace(args: argparse.Namespace
                        ) -> List[float]:
@@ -116,28 +126,40 @@ def read_arrival_trace(args: argparse.Namespace
         if not os.path.exists(file_name): 
             command = ["wget", "https://github.com/HPMLL/BurstGPT/releases/download/v1.1/BurstGPT_2.csv"] 
             subprocess.run(command)
+            # mv  BurstGPT_2.csv arrival_trace/BurstGPT_2.csv
+            command = ["mv", "BurstGPT_2.csv", "arrival_trace/BurstGPT_2.csv"]
+            subprocess.run(command)
 
         df = pd.read_csv(file_name)
         time_list = df['Timestamp']
 
         hourly_arrival = defaultdict(list)
         daily_arrival = defaultdict(list)
+        half_arrival = defaultdict(list) # 6 hours
 
         for t in time_list:
             hourly_arrival[t//3600].append(t)
             daily_arrival[t//86400].append(t)
+            # TODO: fix the shift
+            # half_arrival[(t-3*3600)//21600].append(t)
+            half_arrival[(t)//21600].append(t)
         
-        the_day_index = 9 # day 10
-        if args.time_index != -1: 
-            the_hour_index = args.time_index
-            
-        else:  
-            the_hour_index = 400 # request rate > 1, up and down
+        # the_day_index = 9 # day 10
         if time_range == 'day':
-            arrival_ts = daily_arrival[the_day_index]
+            if args.time_index == -1: 
+                args.time_index = 9
+            arrival_ts = daily_arrival[args.time_index]
         elif time_range == 'hour':
-            arrival_ts = hourly_arrival[the_hour_index]
+            if args.time_index == -1: 
+                args.time_index = 400 # request rate > 1, up and down
+            arrival_ts = hourly_arrival[args.time_index]
+        elif time_range == 'half':
+            if args.time_index == -1:
+                args.time_index = 248
+            arrival_ts = half_arrival[args.time_index] 
+            plot_histogram(arrival_ts)
         return np.diff(np.array(arrival_ts))
+
     elif arrival_trace == 'poisson':
         arrival_rate = args.arrival_rate 
         return np.random.exponential(scale=1/arrival_rate, size=args.num_requests)
@@ -177,6 +199,8 @@ def read_prompt_trace(args: argparse.Namespace):
     elif prompt_trace == 'prefill':
         # Just for profiling recompute latency
         prompt_trace_file = "prompt_trace/test_prefill_trace.json"
+    elif prompt_trace == 'tts':
+        prompt_trace_file = "prompt_trace/english-tts-sharegpt-multi_50k_qoe_trace.json"
     else:
         raise ValueError(f"Unknown prompt trace: {prompt_trace}")
     
@@ -239,7 +263,7 @@ if __name__ == "__main__":
     parser.add_argument("--arrival-trace", type=str, default='gamma', choices=['burstgpt', 'poisson', 'periodic_poisson', 'gamma', 'duty']) 
     parser.add_argument("--arrival-rate", type=float, default=1.0)
     # for burstGPT
-    parser.add_argument("--time-range", type=str, default='day', choices=['day', 'hour'])
+    parser.add_argument("--time-range", type=str, default='day', choices=['day', 'hour', 'half'])
     parser.add_argument("--time-index", type=int, default=-1)
     # for Gamma
     parser.add_argument("--burst", type=float, default=10)

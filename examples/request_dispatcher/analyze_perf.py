@@ -274,15 +274,19 @@ def plt_accumulate_token_over_time(log_data, file_name):
 	thpt_tracker = ThptTracker()
 	total_pause = 0
 	total_len_list = []
-
-	for i, entry in enumerate(log_data): 
+	start_time = 10e10
+	for i, entry in enumerate(log_data):  
+		# if i == 1 :
+		# 	start_time = entry['time_list'][0]
+		# 	print(f'start time: {start_time}')
 		if "time_list" in entry:
 			time_list = entry["time_list"]
+			# if time_list[0] > start_time + 4*3600:
+			# 	break
 			latency = get_token_latency(time_list)
 			pause_duration, pause_times = cal_pause_duration(latency) 
 			pause_list.append(pause_duration)
-			total_pause += pause_times
-
+			total_pause += pause_times 
 			total_tokens += len(time_list)
 
 			request = QoETracker(entry['qoe'])
@@ -293,15 +297,14 @@ def plt_accumulate_token_over_time(log_data, file_name):
 			input_len = cal_input_len(entry['input'], tokenizer)
 			total_len_list.append( len(time_list) + input_len ) 
 
-			if  len(time_list) % 10 == 0:
+			if  len(time_list) % 100 == 0:
 				group_time = np.array(time_list) - time_list[0]
 				y = np.arange(1, len(time_list)+1)
-				plt.plot(group_time, y, linestyle='-', markersize=1)  
+				plt.plot(group_time, y, linestyle='-', markersize=1) 
+				print(f'Progress: {i} / {len(log_data)}')
+
 			
 	avg_qoe = sum(qoe_list) / len(qoe_list)
-	# error = np.std(qoe_list, ddof=1)  
-	# qoe_25th = np.percentile(qoe_list, 25)
-	# qoe_75th = np.percentile(qoe_list, 75)
 
 	perfect_qoe = sum([1 for q in qoe_list if q >= 0.99]) / len(qoe_list)
 	# avg_pause = sum(pause_list) / len(pause_list)
@@ -410,8 +413,8 @@ def analyze_one_trace(file_name):
 if __name__ == "__main__":
 	dir = './' # 'past/'
 	file_list = [ 
-'2024-11-05 01:12-microsoft-Phi-3-mini-128k-instruct-arxiv-gamma*49-0.5(10)-qoe-avg.json',
-'2024-11-05 01:22-microsoft-Phi-3-mini-128k-instruct-arxiv-gamma*49-0.5(10)-qoe-min.json',
+		'2025-04-15 20:51-microsoft-Phi-3.5-MoE-instruct-sharegpt-multi-burstgpt*56805-half-248-qoe-avg.json'
+# '2025-04-16 04:52-microsoft-Phi-3.5-MoE-instruct-sharegpt-multi-burstgpt*45739-half-346-fcfs.json'
 		]
 	if not file_list:
 		file_list = read_all_files()

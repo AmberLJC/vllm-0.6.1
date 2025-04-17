@@ -46,6 +46,7 @@ def main(args):
 
     entries = []
     speed = generate_tds_requirements([79.29, 7.03,6.92,3.58,3.17], [0.31, 0.15, 0.19, 0.15, 0.13, 0.16], 500)
+    # speed = generate_tds_requirements([100], [0.31], 500)
     i = 0
     for data in content:
 
@@ -70,9 +71,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     
     parser.add_argument("--in-file", type=str, default = '/data/amberljc/prompt_dataset/sharegpt/sg_90k_part1_html_cleaned.json' )
-    parser.add_argument("--out-file", type=str, default =f"/data/amberljc/prompt_dataset/sharegpt/sg_90k_part1_html_cleaned_{LEN}.json")
+    # parser.add_argument("--out-file", type=str, default =f"/data/amberljc/prompt_dataset/sharegpt/sg_90k_part1_html_cleaned_{LEN}.json")
     parser.add_argument("--qoe-out-file", type=str, default =f"sharegpt_multi_qoe_trace.json")
     args = parser.parse_args()
     main(vars(args))
 
-# python clean_multi_sharegpt.py --qoe-out-file sharegpt_multi_50k_qoe_trace.json
+# python clean_multi_sharegpt.py --qoe-out-file english-tts-sharegpt-multi_50k_qoe_trace.json --in-file  sg_90k_part1_html_cleaned.json
